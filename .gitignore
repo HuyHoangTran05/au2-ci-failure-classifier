@@ -2,7 +2,7 @@
 data/raw/
 data/excerpts/
 data/external/
-data/fetch.log
+data/fetch*.log
 __pycache__/
 .pytest_cache/
 .venv/

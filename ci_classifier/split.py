@@ -108,7 +108,9 @@ def main(argv: list[str] | None = None) -> None:
         describe(existing, labels)
         return
     else:
-        label_of = {sid: record["label"] for sid, record in labels.items()}
+        # Stratify on (source, label): each log source should reach test with every label it has.
+        label_of = {sid: f"{manifest[sid].get('source', 'github-actions')}:{record['label']}"
+                    for sid, record in labels.items()}
         split = make_split(list(labels), manifest, cfg["test_fraction"], cfg["seed"], label_of)
 
     SPLIT.write_text(json.dumps(split, indent=2), encoding="utf-8")

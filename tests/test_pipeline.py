@@ -101,6 +101,13 @@ def test_select_runs_caps_each_workflow():
     assert [r["workflowName"] for r in chosen] == ["CI", "CI", "Lint", "Lint"]
 
 
+def test_source_label_marks_targeted_samples():
+    from ci_classifier.evaluate import source_label
+    assert source_label({"source": "logchunks"}) == "logchunks"
+    assert source_label({"retrieval": "sample"}) == "github-actions"
+    assert source_label({"retrieval": "targeted-auth"}) == "github-actions (targeted-auth)"
+
+
 def test_expired_logs_are_permanent_errors():
     assert is_permanent("failed to get run log: log not found")
     assert not is_permanent("HTTP 502: Server Error")

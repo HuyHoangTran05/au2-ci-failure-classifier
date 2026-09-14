@@ -12,11 +12,13 @@ from __future__ import annotations
 import argparse
 import gzip
 import json
+import re
 import subprocess
 import time
 from collections import Counter
 
 from .common import RAW_DIR, append_manifest, load_config, now_iso, raw_path, read_manifest, sample_id_for
+from .excerpt import build_excerpt
 
 RUN_FIELDS = "databaseId,workflowName,event,headBranch,headSha,createdAt,url,displayTitle"
 # GitHub deletes logs after the retention period; retrying these never helps.
@@ -74,14 +76,23 @@ def download_log(repo: str, run_id: int, timeout: int, attempts: int = 3) -> tup
 
 
 def main(argv: list[str] | None = None) -> None:
-    config = load_config()["fetch"]
+    full_config = load_config()
+    config = full_config["fetch"]
     parser = argparse.ArgumentParser(prog="python -m ci_classifier fetch", description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--repo", action="append", help="owner/name; may be repeated (default: config.toml)")
     parser.add_argument("--runs-per-repo", type=int, default=config["runs_per_repo"])
     parser.add_argument("--max-per-workflow", type=int, default=config["max_per_workflow"])
+    parser.add_argument("--workflow-filter", metavar="REGEX",
+                        help="only consider workflows whose name matches (case-insensitive)")
+    parser.add_argument("--require", metavar="REGEX",
+                        help="keep a log only if its excerpt matches; others are recorded as filtered_out")
+    parser.add_argument("--tag", default="sample",
+                        help="stored as `retrieval` in the manifest, so targeted samples can be reported apart")
     args = parser.parse_args(argv)
 
+    workflow_filter = re.compile(args.workflow_filter, re.IGNORECASE) if args.workflow_filter else None
+    require = re.compile(args.require) if args.require else None
     timeout = config["timeout_seconds"]
     manifest = read_manifest()
     RAW_DIR.mkdir(parents=True, exist_ok=True)
@@ -95,15 +106,17 @@ def main(argv: list[str] | None = None) -> None:
             totals["repo_errors"] += 1
             continue
 
+        if workflow_filter:
+            runs = [run for run in runs if workflow_filter.search(run["workflowName"])]
         selected = select_runs(runs, args.runs_per_repo, args.max_per_workflow)
-        print(f"[{repo}] {len(runs)} failed runs scanned, {len(selected)} selected")
+        print(f"[{repo}] {len(runs)} failed runs considered, {len(selected)} selected")
 
         for index, run in enumerate(selected, start=1):
             sample_id = sample_id_for(repo, run["databaseId"])
             previous = manifest.get(sample_id, {})
             if (previous.get("status") == "ok" and raw_path(sample_id).exists()) or is_permanent(
                 previous.get("error", "")
-            ):
+            ) or previous.get("status") == "filtered_out":
                 totals["skipped"] += 1
                 continue
 
@@ -120,12 +133,18 @@ def main(argv: list[str] | None = None) -> None:
                 "created_at": run["createdAt"],
                 "url": run["url"],
                 "title": run["displayTitle"],
+                "retrieval": args.tag,
                 "fetched_at": now_iso(),
             }
             if log is None:
                 record.update(status="error", error=error)
                 totals["errors"] += 1
                 print(f"  {index}/{len(selected)} {sample_id}: ERROR {error[:120]}")
+            elif require and not require.search(build_excerpt(log.decode("utf-8", "replace"), full_config["excerpt"])):
+                # Only the verdict is kept, so the run is not downloaded again next time.
+                record.update(status="filtered_out", raw_bytes=len(log))
+                totals["filtered_out"] += 1
+                print(f"  {index}/{len(selected)} {sample_id}: no match, not kept")
             else:
                 raw_path(sample_id).write_bytes(gzip.compress(log))
                 record.update(status="ok", raw_bytes=len(log))
@@ -136,7 +155,8 @@ def main(argv: list[str] | None = None) -> None:
 
     print(
         f"Done: {totals['downloaded']} downloaded, {totals['skipped']} skipped (already present or log expired), "
-        f"{totals['errors']} failed downloads, {totals['repo_errors']} repos unavailable."
+        f"{totals['errors']} failed downloads, {totals['filtered_out']} not matching --require, "
+        f"{totals['repo_errors']} repos unavailable."
     )
 
 

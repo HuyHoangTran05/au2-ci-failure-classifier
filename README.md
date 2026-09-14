@@ -108,22 +108,27 @@ Mỗi nhãn trong `data/labels.jsonl` có trường `labeler`:
 Báo cáo `evaluate` ghi rõ số nhãn nháp trong tập test. Nhãn nháp do một LLM viết, nên khi so sánh
 với phương pháp LLM, kết quả có thể bị thiên vị: hãy duyệt hết nhãn của tập test trước khi báo cáo.
 
-## Kết quả đầu tiên (14/09/2026, nhãn nháp)
+## Kết quả hiện tại (14/09/2026, nhãn nháp)
 
-Dữ liệu: 914 mẫu có nhãn (164 GitHub Actions, 750 LogChunks). Chia theo (repo, workflow) và phân tầng theo nhãn:
-635 train / 279 test. Báo cáo đầy đủ nằm trong `results/`.
+Dữ liệu: 944 mẫu có nhãn (194 GitHub Actions, 750 LogChunks). Chia theo (repo, workflow), phân tầng theo
+(nguồn, loại lỗi): 653 train / 291 test. Báo cáo đầy đủ nằm trong `results/`.
 
 | Phương pháp | Accuracy | Abstention (unknown) | Accuracy khi trả lời | Macro F1 |
 | --- | --- | --- | --- | --- |
-| Luật từ khóa | 0.24 | 0.62 | 0.64 | 0.29 |
-| TF-IDF + logistic regression | 0.21 | 0.77 | 0.91 | 0.16 |
+| Luật từ khóa | 0.30 | 0.54 | 0.65 | 0.37 |
+| TF-IDF + logistic regression | 0.23 | 0.73 | 0.83 | 0.16 |
+
+Mẫu `authentication` rất hiếm nên đã được bổ sung bằng tìm kiếm có mục tiêu:
+`fetch --workflow-filter ... --require <regex lỗi xác thực> --tag targeted-auth`. Trong 38 log khớp từ khóa, chỉ 12 log
+là lỗi xác thực thật. Các mẫu này mang `retrieval: targeted-auth` và được báo cáo tách riêng, vì được chọn bằng từ khóa
+nên luật từ khóa đạt điểm cao bất thường trên chúng. Kết quả trên **không so được** với lần chấm trước vì tập test đã đổi.
 
 Cách đọc:
 - Cả hai phương pháp **đúng khá cao khi chịu trả lời**, nhưng **từ chối phần lớn** mẫu. Luật chưa có mẫu cho
   `other` và `infrastructure`; TF-IDF với ngưỡng 0.4 quá thận trọng khi có ít dữ liệu.
 - Hướng cải thiện tiếp theo (chỉ nhìn tập train): thêm luật cho lint, link checker, docs build, lỗi mạng;
   thử ngưỡng TF-IDF bằng cross-validation trên train.
-- ⚠️ 267/279 nhãn test vẫn là **nháp của Claude**. Hãy duyệt (`label --review`) trước khi dùng các con số này để báo cáo.
+- ⚠️ 284/291 nhãn test vẫn là **nháp của Claude**. Hãy duyệt (`label --review`) trước khi dùng các con số này để báo cáo.
 
 ## Nguyên tắc để kết quả đáng tin
 

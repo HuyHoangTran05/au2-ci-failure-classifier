@@ -60,6 +60,13 @@ def compute_metrics(y_true: list[str], y_pred: list[str], categories: list[str])
     return {"summary": summary, "per_category": per_category, "confusion": confusion}
 
 
+def source_label(record: dict) -> str:
+    """Source name, suffixed when the sample was found by keyword search (e.g. targeted-auth)."""
+    source = record.get("source", "github-actions")
+    retrieval = record.get("retrieval", "sample")
+    return source if retrieval == "sample" else f"{source} ({retrieval})"
+
+
 def by_source(predictions: pd.DataFrame, method: str) -> pd.DataFrame:
     """Accuracy and abstention per data source, since Travis CI and GitHub Actions logs differ."""
     return (predictions
@@ -136,7 +143,7 @@ def main(argv: list[str] | None = None) -> None:
     manifest = read_manifest()
     predictions = pd.DataFrame({
         "sample_id": test_ids,
-        "source": [manifest[sid].get("source", "github-actions") for sid in test_ids],
+        "source": [source_label(manifest[sid]) for sid in test_ids],
         "label": [labels[sid]["label"] for sid in test_ids],
     })
     texts = [read_excerpt(sid) for sid in test_ids]
