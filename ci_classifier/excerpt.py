@@ -15,7 +15,12 @@ from .common import EXCERPT_DIR, excerpt_path, load_config, raw_path, read_manif
 
 ANSI = re.compile(r"(?:\x1b|\^\[)\[[0-9;?]*[A-Za-z]")
 TIMESTAMP = re.compile(r"^\ufeff?\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z ?")
-ERROR_MARKER = "##[error]"
+# `gh run view --log-failed` lines: job<TAB>step<TAB>timestamp text. Other logs (e.g. Travis CI) may
+# also contain tabs, so the timestamp is what identifies the format.
+GH_LINE = re.compile(r"^[^\t]*\t[^\t]*\t\ufeff?\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}")
+TRAVIS_MARKER = re.compile(r"travis_(?:fold|time):\S*")
+# Lines a CI system prints when a step fails: GitHub Actions, and Travis CI's failed-command message.
+ERROR_MARKER = re.compile(r"##\[error\]|^The command \".*\" exited with [1-9]\d*\.")
 # Lines worth keeping even when they are far from the final ##[error] marker.
 KEY_LINE = re.compile(
     r"error (?:CS|TS|NU|MSB)\d{3,5}|error\[E\d{4}\]|: (?:fatal )?error:|npm ERR!|npm error"
@@ -23,18 +28,31 @@ KEY_LINE = re.compile(
     r"|Unauthori[sz]ed|Forbidden|Bad credentials|No space left|rate limit|timed out",
 )
 UNKNOWN_JOB = "(unknown job)"
+PLAIN_JOB = "log"
 
 
 def clean_line(text: str) -> str:
-    return ANSI.sub("", TIMESTAMP.sub("", text)).rstrip()
+    return TRAVIS_MARKER.sub("", ANSI.sub("", TIMESTAMP.sub("", text))).rstrip()
+
+
+def is_gh_log(raw_text: str, probe: int = 20) -> bool:
+    lines = [line for line in raw_text.splitlines()[:200] if line.strip()][:probe]
+    return bool(lines) and 2 * sum(bool(GH_LINE.match(line)) for line in lines) > len(lines)
 
 
 def parse_jobs(raw_text: str) -> dict[str, list[str]]:
-    """Group `gh run view --log-failed` output (job<TAB>step<TAB>line) by job, keeping order."""
+    """Group log lines by job, keeping order.
+
+    `gh run view --log-failed` output (job<TAB>step<TAB>line) is split per job; any other log is one job.
+    """
+    gh_format = is_gh_log(raw_text)
     jobs: dict[str, list[str]] = {}
     for line in raw_text.splitlines():
-        parts = line.split("\t", 2)
-        job, text = (parts[0], parts[2]) if len(parts) == 3 else (UNKNOWN_JOB, line)
+        if gh_format:
+            parts = line.split("\t", 2)
+            job, text = (parts[0], parts[2]) if len(parts) == 3 else (UNKNOWN_JOB, line)
+        else:
+            job, text = PLAIN_JOB, line
         text = clean_line(text)
         if text.startswith("##[endgroup]"):
             continue
@@ -52,7 +70,7 @@ def collapse_blank(lines: list[str]) -> list[str]:
 
 def job_excerpt(lines: list[str], cfg: dict) -> list[str]:
     width = cfg["max_line_chars"]
-    markers = [i for i, text in enumerate(lines) if ERROR_MARKER in text]
+    markers = [i for i, text in enumerate(lines) if ERROR_MARKER.search(text)]
     context_rows: set[int] = set()
     if markers:
         for i in markers[-3:]:

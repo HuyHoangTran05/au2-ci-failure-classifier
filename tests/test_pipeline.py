@@ -7,7 +7,7 @@ from ci_classifier import rules
 from ci_classifier.classify import main as classify_main
 from ci_classifier.common import ROOT, UNKNOWN, load_config, runbook_for
 from ci_classifier.evaluate import compute_metrics, render_report, triage_summary
-from ci_classifier.excerpt import build_excerpt, parse_jobs
+from ci_classifier.excerpt import build_excerpt, is_gh_log, parse_jobs
 from ci_classifier.fetch import is_permanent, select_runs
 from ci_classifier.split import extend_split, make_split
 
@@ -42,6 +42,20 @@ def test_excerpt_keeps_context_before_error_marker_and_distant_key_lines():
     assert "error CS1002" in excerpt
     assert "near 1" in excerpt
     assert "noise 5" not in excerpt
+
+
+def test_plain_logs_with_tabs_are_not_split_into_fake_jobs():
+    raw = "make\tall\tfoo\n\x1b[31mtravis_fold:end:install\x1b[0K\nDone. Your build exited with 1."
+    assert not is_gh_log(raw)
+    assert parse_jobs(raw) == {"log": ["make\tall\tfoo", "", "Done. Your build exited with 1."]}
+
+
+def test_travis_failed_command_counts_as_error_marker():
+    lines = ["noise"] * 10 + ["cause of failure", "\x1b[31;1mThe command \"make test\" exited with 2.\x1b[0m"]
+    lines += [f"cleanup {i}" for i in range(10)] + ["Done. Your build exited with 1."]
+    excerpt = build_excerpt("\n".join(lines), EXCERPT_CFG)
+    assert "cause of failure" in excerpt
+    assert "cleanup 9" not in excerpt
 
 
 def test_excerpt_uses_tail_when_no_error_marker():
@@ -104,6 +118,18 @@ def test_split_groups_never_straddle_train_and_test(manifest):
     group = lambda sid: (manifest[sid]["repo"], manifest[sid]["workflow"])
     assert not {group(s) for s in split["train"]} & {group(s) for s in split["test"]}
     assert len(split["train"]) + len(split["test"]) == 40
+
+
+def test_stratified_split_puts_every_label_in_test(manifest):
+    # "rare" appears in only two groups; a random fill could leave it all in train.
+    # Lint runs only have even ids, so they live in repo0 and repo2.
+    label_of = {sid: ("rare" if manifest[sid]["repo"] in ("org/repo0", "org/repo2") and manifest[sid]["workflow"] == "Lint"
+                      else "common") for sid in manifest}
+    split = make_split(list(manifest), manifest, 0.3, seed=1, label_of=label_of)
+    test_labels = {label_of[sid] for sid in split["test"]}
+    assert test_labels == {"rare", "common"}
+    group = lambda sid: (manifest[sid]["repo"], manifest[sid]["workflow"])
+    assert not {group(s) for s in split["train"]} & {group(s) for s in split["test"]}
 
 
 def test_extend_split_keeps_existing_assignments(manifest):

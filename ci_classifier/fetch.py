@@ -20,7 +20,7 @@ from .common import RAW_DIR, append_manifest, load_config, now_iso, raw_path, re
 
 RUN_FIELDS = "databaseId,workflowName,event,headBranch,headSha,createdAt,url,displayTitle"
 # GitHub deletes logs after the retention period; retrying these never helps.
-PERMANENT_ERRORS = ("log not found",)
+PERMANENT_ERRORS = ("log not found", "HTTP 410")
 
 
 def gh(args: list[str], timeout: int) -> subprocess.CompletedProcess:
@@ -110,6 +110,7 @@ def main(argv: list[str] | None = None) -> None:
             log, error = download_log(repo, run["databaseId"], timeout)
             record = {
                 "sample_id": sample_id,
+                "source": "github-actions",
                 "repo": repo,
                 "run_id": run["databaseId"],
                 "workflow": run["workflowName"],

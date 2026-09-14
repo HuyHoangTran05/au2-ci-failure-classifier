@@ -7,6 +7,7 @@ from importlib import import_module
 
 COMMANDS = {
     "fetch": "download logs of failed GitHub Actions runs",
+    "import-logchunks": "import the LogChunks data set (Travis CI logs with marked failure chunks)",
     "excerpt": "cut raw logs down to the lines that explain the failure",
     "label": "label excerpts by hand",
     "split": "split labelled samples into train and test sets",
@@ -15,6 +16,8 @@ COMMANDS = {
     "classify": "classify one saved failed-job log and link its runbook",
     "triage": "time human triage with and without the classifier's hint",
 }
+# Commands whose module name differs from the command name.
+MODULES = {"import-logchunks": "logchunks"}
 
 
 def main() -> None:
@@ -27,8 +30,8 @@ def main() -> None:
             print(f"  {name:<9} {description}")
         print("\nRun `python -m ci_classifier <command> -h` for a command's options.")
         raise SystemExit(0 if len(sys.argv) > 1 and sys.argv[1] in ("-h", "--help") else 2)
-    command = sys.argv[1]
-    import_module(f"ci_classifier.{command}").main(sys.argv[2:])
+    module = MODULES.get(sys.argv[1], sys.argv[1])
+    import_module(f"ci_classifier.{module}").main(sys.argv[2:])
 
 
 if __name__ == "__main__":

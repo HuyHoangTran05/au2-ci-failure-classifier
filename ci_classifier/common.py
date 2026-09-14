@@ -76,8 +76,14 @@ def read_labels() -> dict[str, dict]:
     return {record["sample_id"]: record for record in read_jsonl(LABELS)}
 
 
-def append_label(sample_id: str, label: str, note: str = "") -> None:
-    append_jsonl(LABELS, {"sample_id": sample_id, "label": label, "note": note, "labeled_at": now_iso()})
+HUMAN = "human"
+DRAFT_LABELER = "claude-draft"
+
+
+def append_label(sample_id: str, label: str, note: str = "", labeler: str = HUMAN) -> None:
+    """Record a label. `labeler` tells human labels apart from unreviewed drafts."""
+    append_jsonl(LABELS, {"sample_id": sample_id, "label": label, "note": note, "labeler": labeler,
+                          "labeled_at": now_iso()})
 
 
 def read_split() -> dict | None:

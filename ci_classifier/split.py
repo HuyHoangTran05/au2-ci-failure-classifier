@@ -23,18 +23,42 @@ def group_of(record: dict) -> str:
     return f"{record['repo']}::{record['workflow']}"
 
 
-def make_split(sample_ids: list[str], manifest: dict[str, dict], test_fraction: float, seed: int) -> dict:
+def make_split(sample_ids: list[str], manifest: dict[str, dict], test_fraction: float, seed: int,
+               label_of: dict[str, str] | None = None) -> dict:
+    """Assign whole (repo, workflow) groups to train or test.
+
+    With `label_of`, groups are placed greedily so every label gets close to `test_fraction` of its samples
+    in test (rare labels first); without it, groups fill test in random order up to the target size.
+    """
     groups: dict[str, list[str]] = defaultdict(list)
     for sample_id in sorted(sample_ids):
         groups[group_of(manifest[sample_id])].append(sample_id)
     keys = sorted(groups)
     random.Random(seed).shuffle(keys)
 
-    target = round(len(sample_ids) * test_fraction)
     train: list[str] = []
     test: list[str] = []
-    for key in keys:
-        (test if len(test) < target else train).extend(groups[key])
+    if label_of is None:
+        target = round(len(sample_ids) * test_fraction)
+        for key in keys:
+            (test if len(test) < target else train).extend(groups[key])
+    else:
+        totals = Counter(label_of[sid] for sid in sample_ids)
+        wanted = {"test": {l: n * test_fraction for l, n in totals.items()},
+                  "train": {l: n * (1 - test_fraction) for l, n in totals.items()}}
+        placed = {"test": Counter(), "train": Counter()}
+        # Stable sort keeps the seeded shuffle among groups whose rarest label is equally rare.
+        keys.sort(key=lambda k: min(totals[label_of[sid]] for sid in groups[k]))
+        for key in keys:
+            counts = Counter(label_of[sid] for sid in groups[key])
+
+            def deficit(side: str) -> float:
+                return sum(n * (wanted[side][l] - placed[side][l]) / max(wanted[side][l], 1e-9)
+                           for l, n in counts.items())
+
+            side = "test" if deficit("test") > deficit("train") else "train"
+            placed[side].update(counts)
+            (test if side == "test" else train).extend(groups[key])
     return {"seed": seed, "test_fraction": test_fraction, "created_at": now_iso(), "train": train, "test": test}
 
 
@@ -84,7 +108,8 @@ def main(argv: list[str] | None = None) -> None:
         describe(existing, labels)
         return
     else:
-        split = make_split(list(labels), manifest, cfg["test_fraction"], cfg["seed"])
+        label_of = {sid: record["label"] for sid, record in labels.items()}
+        split = make_split(list(labels), manifest, cfg["test_fraction"], cfg["seed"], label_of)
 
     SPLIT.write_text(json.dumps(split, indent=2), encoding="utf-8")
     describe(split, labels)

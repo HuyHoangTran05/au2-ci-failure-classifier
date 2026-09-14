@@ -5,6 +5,11 @@
 - Test labels: {% for name, count in run.test_label_counts.items() %}{{ name }}={{ count }}{{ ", " if not loop.last }}{% endfor %}
 
 - labels.jsonl sha256 (first 16): `{{ run.labels_sha256 }}`; split created {{ run.split_created_at }}
+{% if run.draft_labels_in_test %}
+
+> {{ run.draft_labels_in_test }} of {{ run.test_samples }} test labels are unreviewed drafts (claude-draft).
+> Review them with `python -m ci_classifier label --review` before trusting these numbers.
+{% endif %}
 {% if run.test_samples < small_test_set %}
 
 > Test set has only {{ run.test_samples }} samples: treat these numbers as unstable.
@@ -23,6 +28,14 @@
 | --- | --- | --- | --- | --- | --- |
 {% for row in m.per_category %}
 | {{ row.category }} | {{ row.precision|fmt }} | {{ row.recall|fmt }} | {{ row.f1|fmt }} | {{ row.support }} | {{ row.predicted }} |
+{% endfor %}
+
+By source:
+
+| Source | Samples | Accuracy | Abstention rate |
+| --- | --- | --- | --- |
+{% for row in m.by_source %}
+| {{ row.source }} | {{ row.samples }} | {{ row.accuracy|fmt }} | {{ row.abstention_rate|fmt }} |
 {% endfor %}
 
 Confusion matrix (rows = label, columns = prediction):

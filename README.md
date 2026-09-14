@@ -50,8 +50,13 @@ python -m ci_classifier fetch
 # 2. Cắt mỗi log (có thể vài chục MB) còn vài trăm dòng quan trọng -> data/excerpts/
 python -m ci_classifier excerpt
 
-# 3. Gán nhãn bằng tay (đọc docs/labeling-guide.md trước). Mục tiêu: 200-300 mẫu.
-python -m ci_classifier label
+# 2b. (Tuỳ chọn) Thêm 797 log Travis CI từ bộ LogChunks, đã có sẵn đoạn lỗi do con người đánh dấu
+python -m ci_classifier import-logchunks
+
+# 3. Gán nhãn bằng tay (đọc docs/labeling-guide.md trước). Mục tiêu: 200-300 mẫu GitHub Actions.
+python -m ci_classifier label --source logchunks       # nhanh: chỉ cần đọc đoạn lỗi đã đánh dấu
+python -m ci_classifier label --source github-actions
+python -m ci_classifier label --review                 # duyệt nhãn nháp (labeler = claude-draft)
 
 # 4. Chia train/test MỘT LẦN, sau khi đã gán nhãn xong
 python -m ci_classifier split
@@ -76,6 +81,50 @@ python -m ci_classifier classify job.log          # loại lỗi + dòng bằng 
 python -m ci_classifier classify job.log --json   # kết quả dạng JSON cho công cụ khác
 ```
 
+## Dữ liệu
+
+| Nguồn | Số mẫu | Ghi chú |
+| --- | --- | --- |
+| GitHub Actions (`fetch`) | tuỳ cấu hình (~300) | Log mới, đúng định dạng mục tiêu. **Tập test chính nên dựa trên nguồn này.** |
+| [LogChunks](https://doi.org/10.5281/zenodo.3632351) (`import-logchunks`) | 797 | Travis CI khoảng năm 2019, 80 repo, 29 ngôn ngữ. Mỗi log có đoạn lỗi do con người đánh dấu, nhưng **không có loại lỗi**, nên vẫn phải gán nhãn (nhanh hơn nhiều). |
+
+LogChunks: Brandt, Panichella, Zaidman, Beller, *"LogChunks: A Data Set for Build Log Analysis"*, MSR 2020,
+license CC BY 4.0. Bộ phân loại **không bao giờ thấy** đoạn lỗi đã đánh dấu; đoạn đó chỉ là gợi ý khi gán nhãn.
+
+Các dataset khác đã xem nhưng không dùng:
+- [Zheng et al., TOSEM 2025](https://github.com/zhengly1/workflow_failure): 375 job có nhãn, nhưng không kèm log và log gốc đã bị xoá. Chỉ dùng tham khảo cách chia loại lỗi.
+- [GHALogs](https://doi.org/10.5281/zenodo.10154920): 142 GB, không có nhãn.
+- Java Travis MSR'17: nhãn sinh tự động bằng regex, không dùng làm đáp án được.
+
+Chất lượng bước `excerpt` trên LogChunks (đoạn lỗi đã đánh dấu có nằm trọn trong đoạn cắt không):
+329/797 log, độ phủ dòng trung bình 55%. Đây là chỗ còn cải thiện được.
+
+### Nhãn nháp
+
+Mỗi nhãn trong `data/labels.jsonl` có trường `labeler`:
+- `claude-draft`: Claude gán dựa trên đoạn lỗi LogChunks, kèm lý do ngắn trong `note`. **Chưa được người kiểm tra.**
+- `human`: người gán, hoặc người đã duyệt nhãn nháp (`note` ghi `reviewed: kept draft` hoặc `reviewed: changed from ...`).
+
+Báo cáo `evaluate` ghi rõ số nhãn nháp trong tập test. Nhãn nháp do một LLM viết, nên khi so sánh
+với phương pháp LLM, kết quả có thể bị thiên vị: hãy duyệt hết nhãn của tập test trước khi báo cáo.
+
+## Kết quả đầu tiên (14/09/2026, nhãn nháp)
+
+Dữ liệu: 914 mẫu có nhãn (164 GitHub Actions, 750 LogChunks). Chia theo (repo, workflow) và phân tầng theo nhãn:
+635 train / 279 test. Báo cáo đầy đủ nằm trong `results/`.
+
+| Phương pháp | Accuracy | Abstention (unknown) | Accuracy khi trả lời | Macro F1 |
+| --- | --- | --- | --- | --- |
+| Luật từ khóa | 0.24 | 0.62 | 0.64 | 0.29 |
+| TF-IDF + logistic regression | 0.21 | 0.77 | 0.91 | 0.16 |
+
+Cách đọc:
+- Cả hai phương pháp **đúng khá cao khi chịu trả lời**, nhưng **từ chối phần lớn** mẫu. Luật chưa có mẫu cho
+  `other` và `infrastructure`; TF-IDF với ngưỡng 0.4 quá thận trọng khi có ít dữ liệu.
+- Hướng cải thiện tiếp theo (chỉ nhìn tập train): thêm luật cho lint, link checker, docs build, lỗi mạng;
+  thử ngưỡng TF-IDF bằng cross-validation trên train.
+- ⚠️ 267/279 nhãn test vẫn là **nháp của Claude**. Hãy duyệt (`label --review`) trước khi dùng các con số này để báo cáo.
+
 ## Nguyên tắc để kết quả đáng tin
 
 - **Không bao giờ chỉnh luật hay ngưỡng khi đang nhìn tập test.** Làm vậy thì điểm test không còn ý nghĩa.
@@ -93,6 +142,7 @@ config.toml                 loại lỗi, runbook, repo cần tải, thông số
 ci_classifier/
   __main__.py               CLI: python -m ci_classifier <lệnh>
   fetch.py                  tải log bằng gh -> data/raw/*.log.gz + data/manifest.jsonl
+  logchunks.py              nhập bộ LogChunks (tải từ Zenodo, kiểm tra checksum)
   excerpt.py                cắt log -> data/excerpts/*.txt
   label.py                  công cụ gán nhãn -> data/labels.jsonl
   split.py                  chia train/test -> data/split.json

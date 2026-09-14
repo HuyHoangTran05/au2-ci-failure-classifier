@@ -30,5 +30,14 @@ Nhãn phải nhất quán, vì đây là đáp án dùng để chấm điểm c�
    để bỏ qua. Không đoán bừa.
 7. **Không nhìn kết quả của bộ phân loại khi gán nhãn.** Công cụ gán nhãn cố tình không hiện dự đoán.
 
+## Mẫu LogChunks (Travis CI)
+
+- Công cụ hiện **đoạn log mà tác giả LogChunks đã đánh dấu là nguyên nhân**. Thường chỉ cần đọc đoạn này.
+  Nếu chưa đủ để quyết định, bấm `e` để xem đoạn log đầy đủ.
+- Đoạn đánh dấu cho biết *chỗ nào* lỗi, không cho biết *loại lỗi*. Vẫn áp dụng các quy tắc ở trên.
+- Khi bạn gán nhãn một mẫu, các mẫu chưa gán có **đoạn lỗi giống hệt** sẽ được gán cùng nhãn, với ghi chú
+  `auto: same chunk as ...`. Không muốn vậy thì chạy với `--no-propagate`.
+- Lỗi kiểu `Line longer than 80 characters`, kiểm tra kích thước package... thuộc `other`.
+
 Nếu thấy quy tắc nào nên sửa, hãy sửa file này **trước**, rồi dùng `--relabel` cho các mẫu bị ảnh hưởng,
 và ghi lại thay đổi trong báo cáo cuối.

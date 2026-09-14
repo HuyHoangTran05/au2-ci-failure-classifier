@@ -20,8 +20,8 @@ from pathlib import Path
 import pandas as pd
 from jinja2 import Environment, FileSystemLoader
 
-from .common import (LABELS, RESULTS, TRIAGE_LOG, UNKNOWN, load_config, now_iso, read_excerpt, read_jsonl,
-                     read_labels, read_split)
+from .common import (DRAFT_LABELER, LABELS, RESULTS, TRIAGE_LOG, UNKNOWN, load_config, now_iso, read_excerpt, read_jsonl,
+                     read_labels, read_manifest, read_split)
 from .methods import METHODS, build_predictor
 
 SMALL_TEST_SET = 30
@@ -58,6 +58,14 @@ def compute_metrics(y_true: list[str], y_pred: list[str], categories: list[str])
         "macro_f1": per_category["f1"].mean(),
     }
     return {"summary": summary, "per_category": per_category, "confusion": confusion}
+
+
+def by_source(predictions: pd.DataFrame, method: str) -> pd.DataFrame:
+    """Accuracy and abstention per data source, since Travis CI and GitHub Actions logs differ."""
+    return (predictions
+            .assign(correct=predictions[method] == predictions["label"], abstained=predictions[method] == UNKNOWN)
+            .groupby("source")
+            .agg(samples=("label", "size"), accuracy=("correct", "mean"), abstention_rate=("abstained", "mean")))
 
 
 def triage_summary(records: list[dict]) -> pd.DataFrame | None:
@@ -125,7 +133,12 @@ def main(argv: list[str] | None = None) -> None:
     if not test_ids:
         raise SystemExit("The test set has no labelled samples.")
 
-    predictions = pd.DataFrame({"sample_id": test_ids, "label": [labels[sid]["label"] for sid in test_ids]})
+    manifest = read_manifest()
+    predictions = pd.DataFrame({
+        "sample_id": test_ids,
+        "source": [manifest[sid].get("source", "github-actions") for sid in test_ids],
+        "label": [labels[sid]["label"] for sid in test_ids],
+    })
     texts = [read_excerpt(sid) for sid in test_ids]
     results = {}
     for method in METHODS:
@@ -141,12 +154,14 @@ def main(argv: list[str] | None = None) -> None:
         predictions[f"{method}_detail"] = [detail[:160] for _, detail in outputs]
         results[method] = compute_metrics(predictions["label"].tolist(), predictions[method].tolist(), categories)
         results[method]["summary"]["ms_per_sample"] = elapsed_ms / len(texts)
+        results[method]["by_source"] = by_source(predictions, method)
 
     run = {
         "created_at": now_iso(),
         "train_samples": len(train_ids),
         "test_samples": len(test_ids),
         "test_label_counts": predictions["label"].value_counts().sort_index().to_dict(),
+        "draft_labels_in_test": sum(labels[sid].get("labeler") == DRAFT_LABELER for sid in test_ids),
         "labels_sha256": hashlib.sha256(LABELS.read_bytes()).hexdigest()[:16],
         "split_created_at": split["created_at"],
     }
@@ -165,6 +180,7 @@ def main(argv: list[str] | None = None) -> None:
             "title": TITLES[method],
             "summary": result["summary"],
             "per_category": result["per_category"].reset_index().to_dict("records"),
+            "by_source": result["by_source"].reset_index().to_dict("records"),
             "confusion_columns": list(result["confusion"].columns),
             "confusion_rows": [(label, row.tolist()) for label, row in result["confusion"].iterrows()],
             "mistakes": [{"sample_id": r["sample_id"], "label": r["label"], "pred": r[method],
