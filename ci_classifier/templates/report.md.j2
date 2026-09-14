@@ -1,0 +1,57 @@
+# CI failure classifier evaluation
+
+- Created: {{ run.created_at }}
+- Train / test samples: {{ run.train_samples }} / {{ run.test_samples }}
+- Test labels: {% for name, count in run.test_label_counts.items() %}{{ name }}={{ count }}{{ ", " if not loop.last }}{% endfor %}
+
+- labels.jsonl sha256 (first 16): `{{ run.labels_sha256 }}`; split created {{ run.split_created_at }}
+{% if run.test_samples < small_test_set %}
+
+> Test set has only {{ run.test_samples }} samples: treat these numbers as unstable.
+{% endif %}
+{% for m in methods %}
+
+## {{ m.title }}
+
+- Accuracy: **{{ m.summary.accuracy|fmt }}** (unknown counts as wrong)
+- Abstention rate (predicted unknown): {{ m.summary.abstention_rate|fmt }}
+- Accuracy when answered: {{ m.summary.accuracy_when_answered|fmt }}
+- Macro F1: {{ m.summary.macro_f1|fmt }}
+- Runtime: {{ "%.1f"|format(m.summary.ms_per_sample) }} ms/sample
+
+| Category | Precision | Recall | F1 | Support | Predicted |
+| --- | --- | --- | --- | --- | --- |
+{% for row in m.per_category %}
+| {{ row.category }} | {{ row.precision|fmt }} | {{ row.recall|fmt }} | {{ row.f1|fmt }} | {{ row.support }} | {{ row.predicted }} |
+{% endfor %}
+
+Confusion matrix (rows = label, columns = prediction):
+
+| label \ predicted | {{ m.confusion_columns|join(" | ") }} |
+|{% for _ in range(m.confusion_columns|length + 1) %} --- |{% endfor %}
+
+{% for label, counts in m.confusion_rows %}
+| {{ label }} | {{ counts|join(" | ") }} |
+{% endfor %}
+{% if m.mistakes %}
+
+Examples of mistakes:
+
+{% for r in m.mistakes %}
+- `{{ r.sample_id }}` label={{ r.label }} predicted={{ r.pred }}{% if r.detail %} - {{ r.detail }}{% endif %}
+
+{% endfor %}
+{% endif %}
+{% endfor %}
+
+## Triage time
+
+{% if triage %}
+| Condition | Samples | Participants | Median seconds | Mean seconds | Accuracy |
+| --- | --- | --- | --- | --- | --- |
+{% for row in triage %}
+| {{ row.condition }} | {{ row.samples }} | {{ row.participants }} | {{ row.median_seconds|fmt }} | {{ row.mean_seconds|fmt }} | {{ row.accuracy|fmt }} |
+{% endfor %}
+{% else %}
+No sessions yet. Run `python -m ci_classifier triage --participant <name>` to measure it.
+{% endif %}

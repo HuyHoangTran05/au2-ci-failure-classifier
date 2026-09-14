@@ -1,0 +1,6 @@
+# Log tải về rất nặng và tái tạo được bằng fetch/excerpt; nhãn và split thì phải giữ lại.
+data/raw/
+data/excerpts/
+__pycache__/
+.pytest_cache/
+.venv/

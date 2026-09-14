@@ -1,0 +1,53 @@
+# Cấu hình dự án AU2 - phân loại lỗi CI.
+# Nhãn dùng khi gán tay. "unknown" không nằm ở đây: đó là giá trị bộ phân loại trả về khi không chắc (abstain).
+# "other" không có trong đề bài, nhưng cần để gán nhãn trung thực cho lint, build tài liệu, kiểm tra chính sách...
+categories = [
+    "compilation",
+    "test_assertion",
+    "dependency",
+    "authentication",
+    "infrastructure",
+    "other",
+]
+
+[runbooks]
+# Loại lỗi -> runbook. Khi có quyền truy cập, thay bằng link runbook thật trong DMS_DOCS.
+compilation = "docs/runbooks/compilation.md"
+test_assertion = "docs/runbooks/test_assertion.md"
+dependency = "docs/runbooks/dependency.md"
+authentication = "docs/runbooks/authentication.md"
+infrastructure = "docs/runbooks/infrastructure.md"
+other = "docs/runbooks/other.md"
+unknown = "docs/runbooks/unknown.md"
+
+[fetch]
+# Repo công khai dùng GitHub Actions, chọn nhiều ngôn ngữ để lỗi đa dạng.
+repos = [
+    "dotnet/aspire",
+    "microsoft/semantic-kernel",
+    "microsoft/vscode",
+    "microsoft/TypeScript",
+    "microsoft/playwright",
+    "python/cpython",
+    "home-assistant/core",
+    "grafana/grafana",
+]
+runs_per_repo = 40      # số run fail tối đa lấy về mỗi repo
+max_per_workflow = 6    # không để một workflow chiếm hết dữ liệu của repo
+scan_limit = 300        # số run fail gần nhất được quét để chọn mẫu
+timeout_seconds = 180   # thời gian chờ tối đa cho mỗi lệnh gh
+
+[excerpt]
+context_before_error = 40       # số dòng lấy trước mỗi dấu ##[error]
+tail_lines_without_marker = 40  # nếu job không có ##[error] thì lấy N dòng cuối
+max_key_lines = 15              # số dòng "đáng chú ý" tối đa lấy từ toàn bộ job
+max_lines_per_job = 120
+max_total_lines = 300
+max_line_chars = 400
+
+[split]
+test_fraction = 0.3
+seed = 42
+
+[tfidf]
+abstain_below = 0.4  # xác suất cao nhất thấp hơn ngưỡng này thì trả về "unknown"
