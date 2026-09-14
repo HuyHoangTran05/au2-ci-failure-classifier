@@ -1,0 +1,264 @@
+<title>Pain points phân loại lỗi CI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  /* Single white theme by request: no dark variant. */
+  :root {
+    color-scheme: light;
+    --ground: #ffffff;
+    --paper: #f7f9f8;
+    --ink: #17201d;
+    --muted: #5a6763;
+    --rule: #dde3e1;
+    --accent: #1d6b73;
+    --accent-soft: #e1eeee;
+    --fail: #b8322f;
+    --fail-soft: #fbeceb;
+    --bar: #9fbfc1;
+    --code-bg: #f1f4f3;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "Be Vietnam Pro", "Segoe UI", system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.65;
+    padding-inline: 20px;
+    padding-block: 48px 72px;
+  }
+  .page { max-width: 760px; margin-inline: auto; display: grid; gap: 56px; }
+  h1, h2, h3 { text-wrap: balance; line-height: 1.25; margin: 0; }
+  h1 { font-size: 2.1rem; font-weight: 700; letter-spacing: -0.01em; }
+  h2 { font-size: 1.35rem; font-weight: 600; }
+  h3 { font-size: 1.02rem; font-weight: 600; }
+  p { margin: 0; max-width: 66ch; }
+  code, .mono { font-family: "JetBrains Mono", ui-monospace, Consolas, monospace; font-size: 0.86em; }
+  code { background: var(--code-bg); padding: 1px 5px; border-radius: 3px; }
+  .label {
+    font-size: 0.74rem; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted);
+  }
+
+  /* Header */
+  header { display: grid; gap: 18px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--muted); font-size: 0.9rem; }
+  .logline {
+    font-family: "JetBrains Mono", ui-monospace, Consolas, monospace;
+    font-size: 0.84rem;
+    background: var(--code-bg);
+    border-left: 3px solid var(--fail);
+    padding: 12px 16px;
+    overflow-x: auto;
+    white-space: pre;
+    color: var(--muted);
+  }
+  .logline .err { color: var(--fail); font-weight: 500; }
+  .lede { font-size: 1.08rem; color: var(--ink); }
+
+  section { display: grid; gap: 22px; }
+  .section-head { display: grid; gap: 6px; border-top: 1px solid var(--rule); padding-top: 22px; }
+  .section-head p { color: var(--muted); }
+
+  /* Pain list */
+  .pains { display: grid; gap: 0; }
+  .pain {
+    display: grid; grid-template-columns: 12rem 1fr; gap: 6px 24px;
+    padding-block: 16px; border-bottom: 1px solid var(--rule);
+  }
+  .pain:last-child { border-bottom: 0; }
+  .pain h3 { color: var(--ink); }
+  .pain p { color: var(--ink); }
+  @media (max-width: 620px) { .pain { grid-template-columns: 1fr; } }
+
+  /* Evidence figures */
+  .figures { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .figure { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 14px 16px; display: grid; gap: 4px; align-content: start; }
+  .figure .num { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 1.55rem; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--fail); line-height: 1.2; }
+  .figure span:last-child { font-size: 0.88rem; color: var(--muted); line-height: 1.45; }
+  @media (max-width: 620px) { .figures { grid-template-columns: 1fr; } }
+
+  .group { display: grid; gap: 14px; }
+  ul.points { margin: 0; padding-left: 1.1rem; display: grid; gap: 10px; max-width: 70ch; }
+  ul.points li::marker { color: var(--accent); }
+
+  /* Distribution chart */
+  .chart { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 18px 18px 14px; display: grid; gap: 10px; }
+  .row { display: grid; grid-template-columns: 8.5rem 1fr 3.2rem; align-items: center; gap: 12px; }
+  .row .name { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 0.82rem; color: var(--ink); }
+  .track { height: 14px; background: var(--code-bg); border-radius: 2px; }
+  .fill { height: 100%; background: var(--bar); border-radius: 2px; }
+  .fill.rare { background: var(--fail); }
+  .row .val { text-align: right; font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 0.82rem; font-variant-numeric: tabular-nums; color: var(--muted); }
+  .chart .caption { font-size: 0.84rem; color: var(--muted); }
+  @media (max-width: 480px) { .row { grid-template-columns: 7rem 1fr 2.6rem; gap: 8px; } }
+
+  /* Tables */
+  .table-wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.92rem; min-width: 520px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { font-size: 0.74rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  td.n { font-family: "JetBrains Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+  th.n { text-align: right; }
+  .note { font-size: 0.9rem; color: var(--muted); }
+
+  .callout { background: var(--fail-soft); border-radius: 6px; padding: 14px 18px; display: grid; gap: 4px; }
+  .callout strong { color: var(--fail); }
+
+  /* Questions */
+  ol.questions { margin: 0; padding: 0; list-style: none; counter-reset: q; display: grid; gap: 0; }
+  ol.questions li {
+    counter-increment: q; display: grid; grid-template-columns: 2.2rem 1fr; gap: 12px;
+    padding-block: 14px; border-bottom: 1px solid var(--rule);
+  }
+  ol.questions li::before {
+    content: "Q" counter(q); font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 0.82rem;
+    color: var(--accent); background: var(--accent-soft); border-radius: 3px; height: fit-content; text-align: center; padding-block: 2px;
+  }
+  ol.questions strong { display: block; }
+  ol.questions span { color: var(--muted); font-size: 0.93rem; }
+
+  footer { color: var(--muted); font-size: 0.86rem; border-top: 1px solid var(--rule); padding-top: 18px; display: grid; gap: 6px; }
+  a { color: var(--accent); }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+
+<main class="page">
+  <header>
+    <span class="label">AU2 · CI failure classifier · 14/09/2026</span>
+    <h1>Pain points của bài toán phân loại lỗi CI</h1>
+    <div class="logline">job: build-and-test (windows-latest, Debug)
+Build FAILED.
+    0 Warning(s)
+    0 Error(s)
+<span class="err">##[error]Process completed with exit code 1.</span></div>
+    <p class="lede">Dòng lỗi cuối cùng của một job CI thường chỉ nói <em>là</em> nó hỏng, không nói <em>vì sao</em>. Trang này tóm tắt những gì khiến việc tìm nguyên nhân khó, những khó khăn gặp phải khi xây bộ phân loại trên log công khai, và các quyết định cần mentor chốt trước khi đi tiếp.</p>
+    <div class="meta">
+      <span>944 mẫu có nhãn</span>
+      <span>194 log GitHub Actions · 750 log Travis (LogChunks)</span>
+      <span>Nhãn hiện là bản nháp, chưa duyệt</span>
+    </div>
+  </header>
+
+  <section aria-labelledby="s-problem">
+    <div class="section-head">
+      <span class="label">Vấn đề thực tế</span>
+      <h2 id="s-problem">Vì sao triage lỗi CI tốn thời gian</h2>
+    </div>
+    <div class="pains">
+      <div class="pain">
+        <h3>Log quá dài</h3>
+        <p>Một lần chạy có log tới <code>31–32 MB</code> (vscode, grafana). Nguyên nhân thật chỉ là vài dòng giữa hàng chục nghìn dòng cài đặt, tải package và kết quả test.</p>
+      </div>
+      <div class="pain">
+        <h3>Nhiều job đỏ cùng lúc</h3>
+        <p>Một run có 5–10 job fail, nhiều job chỉ là hậu quả hoặc job tổng hợp như <code>All required checks pass</code>, <code>Final Results</code>. Người đọc dễ mở nhầm job.</p>
+      </div>
+      <div class="pain">
+        <h3>Dòng lỗi cuối vô nghĩa</h3>
+        <p><code>Process completed with exit code 1</code> xuất hiện ở hầu hết job. Nguyên nhân nằm xa phía trên, đôi khi ở một job khác.</p>
+      </div>
+      <div class="pain">
+        <h3>Cùng triệu chứng, khác nguyên nhân</h3>
+        <p><code>403</code> có thể là thiếu quyền hoặc bị rate limit. <code>SyntaxError</code> có thể là code sai hoặc runtime Node quá cũ. Tìm từ khóa không đủ, phải hiểu ngữ cảnh.</p>
+      </div>
+      <div class="pain">
+        <h3>Lỗi không do code</h3>
+        <p>Mạng, runner, test flaky, dịch vụ bot/AI lỗi hoặc hết quota khiến dev điều tra code dù code không sai.</p>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-data">
+    <div class="section-head">
+      <span class="label">Khó khăn khi làm</span>
+      <h2 id="s-data">Dữ liệu</h2>
+    </div>
+
+    <div class="figures">
+      <div class="figure"><span class="label">Log đã bị xoá</span><span class="num">97 / 280</span><span>lần tải log CI thường thất bại, phần lớn vì GitHub đã hết hạn lưu log</span></div>
+      <div class="figure"><span class="label">Lỗi xác thực thật</span><span class="num">12 / 38</span><span>log khớp từ khóa xác thực, sau khi quét 2 vòng có mục tiêu</span></div>
+      <div class="figure"><span class="label">Cắt log đủ</span><span class="num">329 / 797</span><span>đoạn log cắt ra chứa trọn đoạn lỗi mà con người đã đánh dấu</span></div>
+    </div>
+
+    <ul class="points">
+      <li><strong>Không có dataset công khai phù hợp.</strong> Không bộ nào vừa có nội dung log vừa có nhãn loại lỗi. LogChunks có đoạn lỗi nhưng không có loại; bộ của Zheng et al. (TOSEM 2025) có loại nhưng log gốc đã bị xoá.</li>
+      <li><strong>Log hết hạn nhanh.</strong> Với DMS cần lưu log ngay khi job fail, không thể thu thập lại sau vài tháng.</li>
+      <li><strong>Khác định dạng log.</strong> Dữ liệu hiện là Travis và GitHub Actions; DMS dùng Azure DevOps hoặc GitLab. Mô hình học trên log công khai chưa chắc dùng được cho log DMS.</li>
+    </ul>
+
+    <div class="chart" role="img" aria-label="Số mẫu theo loại lỗi: other 328, test_assertion 325, dependency 114, compilation 85, infrastructure 61, authentication 31">
+      <span class="label">Mất cân bằng giữa các loại lỗi (944 mẫu)</span>
+      <div class="row"><span class="name">other</span><div class="track"><div class="fill" style="width:100%"></div></div><span class="val">328</span></div>
+      <div class="row"><span class="name">test_assertion</span><div class="track"><div class="fill" style="width:99.1%"></div></div><span class="val">325</span></div>
+      <div class="row"><span class="name">dependency</span><div class="track"><div class="fill" style="width:34.8%"></div></div><span class="val">114</span></div>
+      <div class="row"><span class="name">compilation</span><div class="track"><div class="fill" style="width:25.9%"></div></div><span class="val">85</span></div>
+      <div class="row"><span class="name">infrastructure</span><div class="track"><div class="fill" style="width:18.6%"></div></div><span class="val">61</span></div>
+      <div class="row"><span class="name">authentication</span><div class="track"><div class="fill rare" style="width:9.5%"></div></div><span class="val">31</span></div>
+      <span class="caption">Hai loại đầu chiếm 69%. Tập test chỉ có 10 mẫu <code>authentication</code>, quá ít để tin điểm của loại này.</span>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-labels">
+    <div class="section-head">
+      <span class="label">Khó khăn khi làm</span>
+      <h2 id="s-labels">Nhãn và định nghĩa loại lỗi</h2>
+    </div>
+    <ul class="points">
+      <li><strong>Ranh giới mơ hồ.</strong> Test fail vì mạng là <code>test_assertion</code> hay <code>infrastructure</code>? Một run có nhiều nguyên nhân thì chọn cái nào? Lỗi của workflow hoặc bot xếp vào đâu?</li>
+      <li><strong><code>other</code> chiếm khoảng 1/3.</strong> Dấu hiệu 6 loại hiện tại chưa đủ; có thể cần tách lint, build tài liệu, cấu hình workflow.</li>
+      <li><strong>Chưa đo được mức đồng thuận giữa người gán nhãn.</strong> Mới có một người (và một LLM) gán.</li>
+    </ul>
+    <div class="callout">
+      <strong>284 / 291 nhãn trong tập test là nháp do LLM gán.</strong>
+      <p>Mọi con số bên dưới chỉ đúng khi nhãn đúng. Nếu sau này dùng LLM làm bộ phân loại mà chấm bằng nhãn do LLM gán, điểm sẽ cao ảo.</p>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-eval">
+    <div class="section-head">
+      <span class="label">Khó khăn khi làm</span>
+      <h2 id="s-eval">Đánh giá</h2>
+      <p>Tập test 291 mẫu, chia theo (repo, workflow) để không có workflow nào nằm ở cả train và test.</p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Phương pháp</th><th class="n">Accuracy</th><th class="n">Trả lời unknown</th><th class="n">Đúng khi trả lời</th><th class="n">Macro F1</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Luật từ khóa (regex)</td><td class="n">0.30</td><td class="n">54%</td><td class="n">65%</td><td class="n">0.37</td></tr>
+          <tr><td>TF-IDF + logistic regression</td><td class="n">0.23</td><td class="n">73%</td><td class="n">83%</td><td class="n">0.16</td></tr>
+          <tr><td>LLM</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <ul class="points">
+      <li><strong>Đúng khá khi chịu trả lời, nhưng từ chối quá nhiều.</strong> Luật chưa có mẫu cho <code>other</code> và <code>infrastructure</code>; TF-IDF quá thận trọng khi dữ liệu ít.</li>
+      <li><strong>Điểm không ổn định.</strong> Chỉ chia lại tập mà accuracy của luật đổi từ 0.24 lên 0.30. Cần cross-validation và báo cáo độ lệch.</li>
+      <li><strong>Mẫu lấy có mục tiêu gây thiên vị.</strong> Log authentication được tìm bằng từ khóa, nên luật đạt 0.86 trên nhóm này. Nhóm này được báo cáo tách riêng, không tính là thành tích.</li>
+      <li><strong>Chưa đo được thời gian triage thật.</strong> Cần người không tham gia gán nhãn làm thử.</li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="s-ask">
+    <div class="section-head">
+      <span class="label">Cần mentor quyết định</span>
+      <h2 id="s-ask">Câu hỏi trước khi đi tiếp</h2>
+    </div>
+    <ol class="questions">
+      <li><div><strong>LLM dùng API nào?</strong><span>Giới hạn chi phí bao nhiêu, và log nội bộ DMS có được gửi lên API bên ngoài không?</span></div></li>
+      <li><div><strong>CI của DMS chạy ở đâu?</strong><span>Azure DevOps hay GitLab; có lấy được log fail lịch sử để test không; log được lưu bao lâu?</span></div></li>
+      <li><div><strong>Giữ 6 loại lỗi hay tách thêm?</strong><span>Ví dụ lint, build tài liệu, cấu hình workflow, cho phù hợp với lỗi thường gặp ở DMS.</span></div></li>
+      <li><div><strong>Ai duyệt nhãn cùng?</strong><span>Cần ít nhất một người nữa để đo mức đồng thuận và làm đáp án tin cậy.</span></div></li>
+      <li><div><strong>Runbook thật nằm ở đâu?</strong><span>Hiện dự án dùng runbook mẫu cho từng loại lỗi.</span></div></li>
+      <li><div><strong>Thế nào là “đạt”?</strong><span>Precision/recall tối thiểu và tỷ lệ trả lời unknown tối đa có thể chấp nhận.</span></div></li>
+    </ol>
+  </section>
+
+  <footer>
+    <span>Nguồn số liệu: <code>results/20260914-173253/report.md</code>, <code>data/labels.jsonl</code>, <code>data/manifest.jsonl</code>.</span>
+    <span>Repo: <a href="https://github.com/HuyHoangTran05/au2-ci-failure-classifier">HuyHoangTran05/au2-ci-failure-classifier</a> (private)</span>
+  </footer>
+</main>

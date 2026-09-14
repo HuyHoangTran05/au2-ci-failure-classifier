@@ -108,6 +108,8 @@ Mỗi nhãn trong `data/labels.jsonl` có trường `labeler`:
 Báo cáo `evaluate` ghi rõ số nhãn nháp trong tập test. Nhãn nháp do một LLM viết, nên khi so sánh
 với phương pháp LLM, kết quả có thể bị thiên vị: hãy duyệt hết nhãn của tập test trước khi báo cáo.
 
+Tóm tắt pain point và câu hỏi cho mentor: [`docs/pain-points.html`](docs/pain-points.html).
+
 ## Kết quả hiện tại (14/09/2026, nhãn nháp)
 
 Dữ liệu: 944 mẫu có nhãn (194 GitHub Actions, 750 LogChunks). Chia theo (repo, workflow), phân tầng theo
