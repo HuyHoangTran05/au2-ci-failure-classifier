@@ -5,6 +5,7 @@ Usage:
     python -m ci_classifier label --source logchunks       # fast: shows the human-marked failure chunk
     python -m ci_classifier label --relabel dotnet__aspire__34815567672
     python -m ci_classifier label --review                 # check draft labels written by Claude
+    python -m ci_classifier label --accept-drafts <name>   # drafts were checked elsewhere; keep them as human labels
 
 For LogChunks samples, a label is also applied to unlabelled samples with an identical chunk
 (recorded in the note); pass --no-propagate to label each one yourself.
@@ -78,6 +79,17 @@ def ask(sample_id: str, record: dict, categories: list[str], position: str,
         print("Không hợp lệ, nhập lại.")
 
 
+def accept_drafts(labels: dict[str, dict], wanted, reviewer: str) -> int:
+    """Append a human record keeping each draft label; the note keeps it distinct from one-by-one review."""
+    accepted = 0
+    for sid, record in labels.items():
+        if record.get("labeler") == DRAFT_LABELER and wanted(sid):
+            append_label(sid, record["label"], f"reviewed: bulk accepted by {reviewer} (draft kept); "
+                                               f"draft note: {record.get('note', '')}")
+            accepted += 1
+    return accepted
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="python -m ci_classifier label", description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -86,6 +98,8 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--no-propagate", action="store_true", help="do not copy labels to identical chunks")
     parser.add_argument("--review", action="store_true",
                         help=f"review draft labels ({DRAFT_LABELER}): Enter keeps, a number changes")
+    parser.add_argument("--accept-drafts", metavar="REVIEWER",
+                        help="record that REVIEWER checked the draft labels outside this tool and keeps them all")
     args = parser.parse_args(argv)
 
     config = load_config()
@@ -95,6 +109,11 @@ def main(argv: list[str] | None = None) -> None:
 
     def wanted(sid: str) -> bool:
         return sid in manifest and (args.source is None or source_of(manifest[sid]) == args.source)
+
+    if args.accept_drafts:
+        accepted = accept_drafts(labels, wanted, args.accept_drafts)
+        print(f"Recorded {accepted} draft labels as accepted by {args.accept_drafts}.")
+        return
 
     if args.relabel:
         queue = [args.relabel]

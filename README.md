@@ -121,6 +121,8 @@ Chất lượng bước `excerpt` trên LogChunks (đoạn lỗi đã đánh d�
 Mỗi nhãn trong `data/labels.jsonl` có trường `labeler`:
 - `claude-draft`: Claude gán dựa trên đoạn lỗi LogChunks, kèm lý do ngắn trong `note`. **Chưa được người kiểm tra.**
 - `human`: người gán, hoặc người đã duyệt nhãn nháp (`note` ghi `reviewed: kept draft` hoặc `reviewed: changed from ...`).
+  Nếu nhãn nháp được kiểm tra bên ngoài công cụ, `label --accept-drafts <tên>` ghi nhận toàn bộ với
+  `note` = `reviewed: bulk accepted by <tên>`, để vẫn phân biệt được với duyệt từng mẫu.
 
 Báo cáo `evaluate` ghi rõ số nhãn nháp trong tập test. Nhãn nháp do một LLM viết, nên khi so sánh
 với phương pháp LLM, kết quả có thể bị thiên vị: hãy duyệt hết nhãn của tập test trước khi báo cáo.

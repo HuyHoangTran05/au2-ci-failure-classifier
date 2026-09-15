@@ -69,6 +69,21 @@ def test_review_number_equal_to_draft_counts_as_kept(monkeypatch):
     assert label.ask("s1", {"url": ""}, ["compilation", "other"], "[1/1]", draft) == ("other", "reviewed: kept draft")
 
 
+def test_accept_drafts_keeps_label_and_marks_reviewer(tmp_path, monkeypatch):
+    from ci_classifier import common
+    monkeypatch.setattr(common, "LABELS", tmp_path / "labels.jsonl")
+    common.append_label("d1", "other", "lint", labeler=common.DRAFT_LABELER)
+    common.append_label("d2", "compilation", "tsc", labeler=common.DRAFT_LABELER)
+    common.append_label("h1", "dependency", "npm")
+
+    count = label.accept_drafts(common.read_labels(), lambda sid: sid != "d2", "hoang")
+    after = common.read_labels()
+    assert count == 1
+    assert after["d1"]["labeler"] == common.HUMAN and after["d1"]["label"] == "other"
+    assert "bulk accepted by hoang" in after["d1"]["note"]
+    assert after["d2"]["labeler"] == common.DRAFT_LABELER
+
+
 def test_chunk_key_matches_identical_chunks_only():
     assert chunk_key({"chunk": "a  b\nc"}) == chunk_key({"chunk": "a b c"})
     assert chunk_key({"chunk": "a b"}) != chunk_key({"chunk": "a c"})
