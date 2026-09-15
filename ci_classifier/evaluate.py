@@ -22,8 +22,9 @@ from jinja2 import Environment, FileSystemLoader
 
 from .common import (DRAFT_LABELER, LABELS, RESULTS, TRIAGE_LOG, UNKNOWN, load_config, now_iso, read_excerpt, read_jsonl,
                      read_labels, read_manifest, read_split)
-from . import llm
+from . import llm, stats
 from .methods import METHODS, build_predictor
+from .split import group_of
 
 SMALL_TEST_SET = 30
 TITLES = {"rules": "Baseline 1 - keyword rules", "tfidf": "Baseline 2 - TF-IDF + logistic regression",
@@ -60,6 +61,32 @@ def compute_metrics(y_true: list[str], y_pred: list[str], categories: list[str])
         "macro_f1": per_category["f1"].mean(),
     }
     return {"summary": summary, "per_category": per_category, "confusion": confusion}
+
+
+def uncertainty(predictions: pd.DataFrame, results: dict, categories: list[str], samples: int, seed: int) -> dict:
+    """95% cluster-bootstrap intervals per method and exact McNemar tests for each pair of methods.
+
+    Pairs are compared on the rows both methods have scored, so a partially answered LLM run stays paired.
+    """
+    intervals = []
+    for method, result in results.items():
+        rows = predictions.loc[result["scored_rows"]]
+        row = {"method": method, "samples": len(rows)}
+        for name, metric in (("accuracy", stats.accuracy), ("macro_f1", stats.macro_f1)):
+            point, low, high = stats.group_bootstrap_ci(rows["label"], rows[method], rows["group"], metric,
+                                                        categories, samples, seed)
+            row.update({name: point, f"{name}_low": low, f"{name}_high": high})
+        intervals.append(row)
+
+    pairs = []
+    methods = list(results)
+    for i, a in enumerate(methods):
+        for b in methods[i + 1:]:
+            shared = results[a]["scored_rows"].intersection(results[b]["scored_rows"])
+            rows = predictions.loc[shared]
+            test = stats.mcnemar_exact(rows[a] == rows["label"], rows[b] == rows["label"])
+            pairs.append({"a": a, "b": b, "samples": len(rows), **test})
+    return {"bootstrap_samples": samples, "intervals": intervals, "pairs": pairs}
 
 
 def llm_usage(test_ids: list[str], texts: list[str], config: dict) -> dict | None:
@@ -167,6 +194,7 @@ def main(argv: list[str] | None = None) -> None:
     predictions = pd.DataFrame({
         "sample_id": test_ids,
         "source": [source_label(manifest[sid]) for sid in test_ids],
+        "group": [group_of(manifest[sid]) for sid in test_ids],
         "label": [labels[sid]["label"] for sid in test_ids],
     })
     texts = [read_excerpt(sid) for sid in test_ids]
@@ -208,7 +236,9 @@ def main(argv: list[str] | None = None) -> None:
     out_dir.mkdir(parents=True)
     predictions.to_csv(out_dir / "predictions.csv", index=False)
     llm_cost = llm_usage(test_ids, texts, config) if "llm" in results else None
-    metrics = {"run": run, "config": config, "triage": triage, "llm_usage": llm_cost,
+    significance = uncertainty(predictions, results, categories, config["evaluation"]["bootstrap_samples"],
+                               config["split"]["seed"])
+    metrics = {"run": run, "config": config, "triage": triage, "llm_usage": llm_cost, "significance": significance,
                "methods": {m: {k: v for k, v in r.items() if k != "scored_rows"} for m, r in results.items()}}
     (out_dir / "metrics.json").write_text(json.dumps(to_json(metrics), indent=2), encoding="utf-8")
 
@@ -231,6 +261,7 @@ def main(argv: list[str] | None = None) -> None:
         "run": run,
         "small_test_set": SMALL_TEST_SET,
         "methods": method_views,
+        "significance": significance,
         "triage": None if triage is None else triage.reset_index().to_dict("records"),
     })
     (out_dir / "report.md").write_text(report, encoding="utf-8")

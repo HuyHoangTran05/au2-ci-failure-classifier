@@ -14,6 +14,28 @@
 
 > Test set has only {{ run.test_samples }} samples: treat these numbers as unstable.
 {% endif %}
+{% if significance %}
+
+## Uncertainty and significance
+
+95% confidence intervals from a cluster bootstrap ({{ significance.bootstrap_samples }} resamples of whole
+repo/workflow groups, since runs of one workflow are not independent):
+
+| Method | Samples | Accuracy [95% CI] | Macro F1 [95% CI] |
+| --- | --- | --- | --- |
+{% for r in significance.intervals %}
+| {{ r.method }} | {{ r.samples }} | {{ r.accuracy|fmt }} [{{ r.accuracy_low|fmt }}, {{ r.accuracy_high|fmt }}] | {{ r.macro_f1|fmt }} [{{ r.macro_f1_low|fmt }}, {{ r.macro_f1_high|fmt }}] |
+{% endfor %}
+
+Exact McNemar test on the samples both methods scored (p < 0.05: the accuracy difference is unlikely to be chance;
+samples are treated as independent here, so read borderline p-values with care):
+
+| A vs B | Samples | Only A right | Only B right | p-value |
+| --- | --- | --- | --- | --- |
+{% for p in significance.pairs %}
+| {{ p.a }} vs {{ p.b }} | {{ p.samples }} | {{ p.a_only }} | {{ p.b_only }} | {{ "%.2g"|format(p.p_value) }} |
+{% endfor %}
+{% endif %}
 {% for m in methods %}
 
 ## {{ m.title }}
