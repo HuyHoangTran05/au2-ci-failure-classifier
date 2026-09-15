@@ -21,14 +21,14 @@ import random
 from datetime import datetime
 
 import numpy as np
-import pandas as pd
-from sklearn.metrics import cohen_kappa_score
 
 from . import stats
 from .common import (BLIND_LABELS, DRAFT_LABELER, LABELS, RESULTS, append_jsonl, load_config, now_iso, read_excerpt,
                      read_jsonl, read_labels, read_manifest, read_split)
-from .methods import METHODS, build_predictor
 from .split import group_of
+
+# pandas, scikit-learn and the classifiers are imported where they are used: `label` and `panel-run` import this
+# module for its small helpers, and the project machine has little free memory.
 
 BLIND_PROTOCOL = "blind-v1"
 
@@ -106,6 +106,8 @@ def kappa(y_a: np.ndarray, y_b: np.ndarray, categories) -> float:
         return math.nan
     if len(set(y_a) | set(y_b)) == 1:
         return 1.0  # both raters used one identical category everywhere: perfect, but kappa is undefined
+    from sklearn.metrics import cohen_kappa_score
+
     return float(cohen_kappa_score(y_a, y_b, labels=list(categories)))
 
 
@@ -120,6 +122,8 @@ def compare(draft: list[str], blind: list[str], groups: list[str], categories: l
 
 def method_bias(predictions: dict[str, list[str]], draft: list[str], blind: list[str]) -> pd.DataFrame:
     """Accuracy of each method against draft and blind labels on the same samples, with a McNemar test."""
+    import pandas as pd
+
     rows = []
     draft_arr, blind_arr = np.array(draft), np.array(blind)
     for method, predicted in predictions.items():
@@ -133,6 +137,10 @@ def method_bias(predictions: dict[str, list[str]], draft: list[str], blind: list
 
 
 def main(argv: list[str] | None = None) -> None:
+    import pandas as pd
+
+    from .methods import METHODS, build_predictor
+
     parser = argparse.ArgumentParser(prog="python -m ci_classifier agreement", description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--labeler", help="only blind labels by this person (default: everyone's latest)")

@@ -24,7 +24,6 @@ from collections import Counter
 from datetime import datetime
 
 import numpy as np
-import pandas as pd
 
 from . import agreement, llm
 from .common import (DATA, RESULTS, UNKNOWN, append_jsonl, load_config, now_iso, read_excerpt, read_jsonl, read_labels,
@@ -207,6 +206,8 @@ def run(argv: list[str] | None = None) -> None:
 
 
 def report(argv: list[str] | None = None) -> None:
+    import pandas as pd  # only the report needs it; panel-run stays light on a low-memory machine
+
     parser = argparse.ArgumentParser(prog="python -m ci_classifier panel-report", description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.parse_args(argv)
