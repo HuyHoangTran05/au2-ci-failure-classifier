@@ -37,7 +37,11 @@ Tài liệu bàn giao để một phiên làm việc mới (người hoặc Clau
 >   Fleiss 0.87; 72 confirmed / 6 contested / 2 split. Người dùng đã phân xử cả 8 mẫu (3 giữ nháp, 4 theo đa số, 1 nhãn khác).
 > - Sau phân xử (`results/20260915-171321/`): luật 0.34, TF-IDF 0.57, LLM 0.715, hybrid 0.746. Báo cáo: `docs/reports/2026-09-15-llm-panel.md`.
 > - Báo cáo: `docs/reports/2026-09-15-tfidf-threshold-and-hybrid.md`, `docs/reports/2026-09-15-rules-ci-and-llm-train.md`.
-> - **Việc tiếp theo, theo thứ tự:** (1) hội đồng cho các mẫu test còn lại (tăng `[panel] sample_count`; 80 mẫu đầu giữ nguyên thứ tự, mẫu trùng đoạn lỗi LogChunks bị bỏ) → phân xử → `evaluate --cv 5`;
+> - Hội đồng đã phủ cả tập test (208 mẫu khác nhau; `results/20260915-220617-panel/`): 171 confirmed / 23 contested / 14 split.
+>   Đã đồng bộ 4 mẫu trùng đoạn lỗi. Test hiện tại (`results/20260915-220800/`): LLM 0.72, hybrid 0.75. 20 câu trả lời lỗi
+>   chưa hỏi lại được (nhà cung cấp quá tải). Máy hay thiếu RAM: chạy `panel-run` foreground, `--limit` nhỏ, commit sau mỗi đợt;
+>   sau khi tiến trình bị dừng, kiểm tra còn `python.exe` sót lại không.
+> - **Việc tiếp theo, theo thứ tự:** (1) người dùng phân xử 29 mẫu còn lại (`label --adjudicate --panel`) → `evaluate --cv 5`;
 >   (2) `llm-run --split train --limit 40` mỗi ngày; (3) chỉ sau khi nhãn đã chốt mới làm prompt v2 hoặc thêm dữ liệu.
 >   Đừng tinh chỉnh thêm trên tập test trước bước (1).
 
