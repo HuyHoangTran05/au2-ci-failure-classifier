@@ -96,12 +96,18 @@
 
   /* Tables */
   .table-wrap { overflow-x: auto; }
-  table { border-collapse: collapse; width: 100%; font-size: 0.92rem; min-width: 520px; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.92rem; min-width: 640px; }
   th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; }
   th { font-size: 0.74rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
   td.n { font-family: "JetBrains Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
   th.n { text-align: right; }
   .note { font-size: 0.9rem; color: var(--muted); }
+  td .ci { display: block; font-size: 0.78rem; color: var(--muted); }
+  tr.best td { background: var(--accent-soft); }
+  .status { font-size: 0.74rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; border-radius: 3px; padding: 1px 7px; width: fit-content; }
+  .status.done { color: var(--accent); background: var(--accent-soft); }
+  .status.wait { color: var(--fail); background: var(--fail-soft); }
+  .pain .stack { display: grid; gap: 6px; align-content: start; }
 
   .callout { background: var(--fail-soft); border-radius: 6px; padding: 14px 18px; display: grid; gap: 4px; }
   .callout strong { color: var(--fail); }
@@ -126,7 +132,7 @@
 
 <main class="page">
   <header>
-    <span class="label">AU2 · CI failure classifier · 14/09/2026</span>
+    <span class="label">AU2 · CI failure classifier · cập nhật 15/09/2026</span>
     <h1>Pain points của bài toán phân loại lỗi CI</h1>
     <div class="logline">job: build-and-test (windows-latest, Debug)
 Build FAILED.
@@ -137,9 +143,31 @@ Build FAILED.
     <div class="meta">
       <span>944 mẫu có nhãn</span>
       <span>194 log GitHub Actions · 750 log Travis (LogChunks)</span>
-      <span>Nhãn hiện là bản nháp, chưa duyệt</span>
+      <span>Nhãn: nháp của Claude, đã duyệt hàng loạt, chưa kiểm tra mù</span>
     </div>
   </header>
+
+  <section aria-labelledby="s-changes">
+    <div class="section-head">
+      <span class="label">Thay đổi từ bản 14/09</span>
+      <h2 id="s-changes">Đã sửa gì, còn chờ gì</h2>
+      <p>Dự án hiện chỉ có một người làm, nên các việc cần người thứ hai được thay bằng cách tự kiểm tra có kiểm soát.</p>
+    </div>
+    <div class="pains">
+      <div class="pain">
+        <div class="stack"><span class="status done">Đã làm</span><h3>Ngưỡng TF-IDF</h3></div>
+        <p>Ngưỡng cũ 0.4 khiến TF-IDF trả unknown cho 73% mẫu test. Ngưỡng mới 0.2 được chọn bằng cross-validation <em>chỉ trên tập train</em> (lệnh <code>tune-tfidf</code>). Accuracy trên test tăng từ 0.23 lên 0.57.</p>
+      </div>
+      <div class="pain">
+        <div class="stack"><span class="status done">Đã làm</span><h3>Bộ phân loại lai</h3></div>
+        <p>Dùng LLM trước; khi LLM trả unknown thì TF-IDF trả lời thay. Kết quả 0.74 so với 0.71: đúng thêm 9 mẫu, không làm sai thêm mẫu nào (McNemar p = 0.004). Ý tưởng nảy ra khi phân tích trên tập test, nên con số này có thể hơi lạc quan.</p>
+      </div>
+      <div class="pain">
+        <div class="stack"><span class="status wait">Đang chờ gán</span><h3>Gán nhãn mù</h3></div>
+        <p>Công cụ <code>label --blind</code> ẩn nhãn cũ và dự đoán, chọn cố định 80 mẫu test. <code>agreement</code> tính Cohen's kappa và so điểm của từng phương pháp theo nhãn nháp và theo nhãn mù. <code>label --adjudicate</code> dùng để chốt nhãn cuối cho các mẫu bất đồng. Chưa có kết quả, vì cần người gán thật.</p>
+      </div>
+    </div>
+  </section>
 
   <section aria-labelledby="s-problem">
     <div class="section-head">
@@ -208,11 +236,12 @@ Build FAILED.
     <ul class="points">
       <li><strong>Ranh giới mơ hồ.</strong> Test fail vì mạng là <code>test_assertion</code> hay <code>infrastructure</code>? Một run có nhiều nguyên nhân thì chọn cái nào? Lỗi của workflow hoặc bot xếp vào đâu?</li>
       <li><strong><code>other</code> chiếm khoảng 1/3.</strong> Dấu hiệu 6 loại hiện tại chưa đủ; có thể cần tách lint, build tài liệu, cấu hình workflow.</li>
-      <li><strong>Chưa đo được mức đồng thuận giữa người gán nhãn.</strong> Mới có một người (và một LLM) gán.</li>
+      <li><strong>Chưa đo được mức đồng thuận.</strong> Chỉ có một người, nên sẽ tự gán mù lại 80 mẫu test sau vài ngày. Kappa đo cách này là <em>cận trên</em>, vì người gán vẫn có thể nhớ một phần nhãn cũ.</li>
+      <li><strong>Đã có nghi vấn cụ thể.</strong> <code>ejabberd__566947386</code> có nhãn <code>authentication</code> (“DB user lacks permission”), nhưng đoạn log cắt ra chỉ cho thấy <code>git clone</code> bị <code>Connection timed out</code>.</li>
     </ul>
     <div class="callout">
-      <strong>284 / 291 nhãn trong tập test là nháp do LLM gán.</strong>
-      <p>Mọi con số bên dưới chỉ đúng khi nhãn đúng. Nếu sau này dùng LLM làm bộ phân loại mà chấm bằng nhãn do LLM gán, điểm sẽ cao ảo.</p>
+      <strong>944 / 944 nhãn bắt đầu là nháp do Claude gán; 926 nhãn được duyệt hàng loạt trong một lần, không nhãn nào bị đổi.</strong>
+      <p>Mọi con số bên dưới chỉ đúng khi nhãn đúng. Accuracy 0.71 của LLM thực chất là mức đồng ý giữa hai LLM (Nemotron và Claude). Kết quả gán mù sẽ cho biết con số này bị nâng lên bao nhiêu.</p>
     </div>
   </section>
 
@@ -220,27 +249,29 @@ Build FAILED.
     <div class="section-head">
       <span class="label">Khó khăn khi làm</span>
       <h2 id="s-eval">Đánh giá</h2>
-      <p>Tập test 291 mẫu, chia theo (repo, workflow) để không có workflow nào nằm ở cả train và test.</p>
+      <p>Tập test 291 mẫu (43 nhóm workflow), chia theo (repo, workflow) để không có workflow nào nằm ở cả train và test. Khoảng tin cậy 95% bằng bootstrap theo nhóm; chạy thêm cross-validation 5 lần.</p>
     </div>
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th>Phương pháp</th><th class="n">Accuracy</th><th class="n">Trả lời unknown</th><th class="n">Đúng khi trả lời</th><th class="n">Macro F1</th></tr>
+          <tr><th>Phương pháp</th><th class="n">Accuracy test</th><th class="n">Chỉ GitHub Actions</th><th class="n">CV 5 lần</th><th class="n">Trả lời unknown</th><th class="n">Macro F1</th></tr>
         </thead>
         <tbody>
-          <tr><td>Luật từ khóa (regex)</td><td class="n">0.30</td><td class="n">54%</td><td class="n">65%</td><td class="n">0.37</td></tr>
-          <tr><td>TF-IDF + logistic regression (ngưỡng 0.2, chọn trên train)</td><td class="n">0.57</td><td class="n">0%</td><td class="n">57%</td><td class="n">0.29</td></tr>
-          <tr><td>LLM (nemotron-3-super, miễn phí)</td><td class="n">0.71</td><td class="n">8%</td><td class="n">77%</td><td class="n">0.67</td></tr>
-          <tr><td>Hybrid: LLM, TF-IDF khi LLM trả unknown</td><td class="n">0.74</td><td class="n">0%</td><td class="n">74%</td><td class="n">0.67</td></tr>
+          <tr><td>Luật từ khóa (regex)</td><td class="n">0.30<span class="ci">[0.19, 0.42]</span></td><td class="n">0.37</td><td class="n">0.27 ± 0.04</td><td class="n">54%</td><td class="n">0.37</td></tr>
+          <tr><td>TF-IDF + logistic regression<span class="ci">ngưỡng 0.2, chọn trên train</span></td><td class="n">0.57<span class="ci">[0.44, 0.69]</span></td><td class="n">0.32</td><td class="n">0.62 ± 0.07</td><td class="n">0%</td><td class="n">0.29</td></tr>
+          <tr><td>LLM (nemotron-3-super, miễn phí)</td><td class="n">0.71<span class="ci">[0.59, 0.80]</span></td><td class="n">0.69</td><td class="n">0.72 ± 0.07</td><td class="n">8%</td><td class="n">0.67</td></tr>
+          <tr class="best"><td>Hybrid<span class="ci">LLM, TF-IDF khi LLM trả unknown</span></td><td class="n">0.74<span class="ci">[0.62, 0.83]</span></td><td class="n">0.71</td><td class="n">0.75 ± 0.06</td><td class="n">0%</td><td class="n">0.67</td></tr>
         </tbody>
       </table>
     </div>
+    <p class="note">Chỉ GitHub Actions: 62 mẫu test, khoảng tin cậy khoảng ±0.17. Cross-validation của LLM và hybrid chỉ tính 293 mẫu đã có câu trả lời lưu sẵn, gần như toàn bộ nằm trong tập test.</p>
     <ul class="points">
       <li><strong>Luật từ chối quá nhiều; TF-IDF từng bị ngưỡng quá cao.</strong> Luật chưa có mẫu cho <code>other</code> và <code>infrastructure</code>. Ngưỡng abstain cũ của TF-IDF (0.4) khiến 73% mẫu bị trả unknown; chọn lại bằng cross-validation trên train (0.2) thì accuracy lên 0.57, nhưng TF-IDF vẫn yếu ở loại hiếm và trên log GitHub Actions (0.32).</li>
       <li><strong>LLM tốt hơn rõ nhưng có thể bị thiên vị lên.</strong> Nhãn test do một LLM khác gán nháp. Loại yếu nhất của LLM là <code>infrastructure</code> (F1 0.39), hay nhầm với <code>test_assertion</code>. Model miễn phí bị giới hạn lượt gọi và đôi khi bị chặn tạm thời.</li>
-      <li><strong>Điểm không ổn định.</strong> Chỉ chia lại tập mà accuracy của luật đổi từ 0.24 lên 0.30. Cần cross-validation và báo cáo độ lệch.</li>
+      <li><strong>Tập test nhỏ.</strong> Đã có khoảng tin cậy và cross-validation, nhưng khoảng vẫn rộng khoảng ±0.1 vì chỉ có 43 nhóm workflow. Riêng log GitHub Actions (định dạng mục tiêu) chỉ có 62 mẫu.</li>
+      <li><strong>TF-IDF học từ vựng Travis.</strong> 80% dữ liệu train là LogChunks, nên trên log GitHub Actions TF-IDF chỉ đạt 0.32 và hybrid gần như không giúp thêm (đúng thêm 1 mẫu).</li>
       <li><strong>Mẫu lấy có mục tiêu gây thiên vị.</strong> Log authentication được tìm bằng từ khóa, nên luật đạt 0.86 trên nhóm này. Nhóm này được báo cáo tách riêng, không tính là thành tích.</li>
-      <li><strong>Chưa đo được thời gian triage thật.</strong> Cần người không tham gia gán nhãn làm thử.</li>
+      <li><strong>Chưa đo được thời gian triage thật.</strong> Người gán nhãn đã nhớ đáp án của tập cũ. Phương án một người: tự đo trên log GitHub Actions mới tải về chưa từng xem, và ghi rõ là số liệu của một người.</li>
     </ul>
   </section>
 
@@ -253,14 +284,15 @@ Build FAILED.
       <li><div><strong>Log nội bộ DMS có được gửi lên LLM bên ngoài không?</strong><span>Hiện dùng OpenRouter với model miễn phí trên log công khai; model miễn phí có thể lưu dữ liệu gửi lên.</span></div></li>
       <li><div><strong>CI của DMS chạy ở đâu?</strong><span>Azure DevOps hay GitLab; có lấy được log fail lịch sử để test không; log được lưu bao lâu?</span></div></li>
       <li><div><strong>Giữ 6 loại lỗi hay tách thêm?</strong><span>Ví dụ lint, build tài liệu, cấu hình workflow, cho phù hợp với lỗi thường gặp ở DMS.</span></div></li>
-      <li><div><strong>Ai duyệt nhãn cùng?</strong><span>Cần ít nhất một người nữa để đo mức đồng thuận và làm đáp án tin cậy.</span></div></li>
+      <li><div><strong>Mentor có thể gán mù 10–20 mẫu không?</strong><span>Dự án chỉ có một người. Tự gán mù lại cho kappa cận trên; chỉ cần vài chục nhãn từ người thứ hai là kiểm chứng được mức đó.</span></div></li>
       <li><div><strong>Runbook thật nằm ở đâu?</strong><span>Hiện dự án dùng runbook mẫu cho từng loại lỗi.</span></div></li>
       <li><div><strong>Thế nào là “đạt”?</strong><span>Precision/recall tối thiểu và tỷ lệ trả lời unknown tối đa có thể chấp nhận.</span></div></li>
     </ol>
   </section>
 
   <footer>
-    <span>Nguồn số liệu: <code>results/20260915-091730/report.md</code>, <code>data/labels.jsonl</code>, <code>data/manifest.jsonl</code>.</span>
+    <span>Nguồn số liệu: <code>results/20260915-112959/report.md</code>, <code>results/20260915-113027-github-actions/report.md</code>, <code>results/20260915-112821-tune-tfidf/thresholds.csv</code>, <code>data/labels.jsonl</code>, <code>data/manifest.jsonl</code>.</span>
+    <span>Báo cáo chi tiết: <code>docs/reports/2026-09-15-tfidf-threshold-and-hybrid.md</code>; quy trình gán mù: <code>docs/labeling-guide.md</code>.</span>
     <span>Repo: <a href="https://github.com/HuyHoangTran05/au2-ci-failure-classifier">HuyHoangTran05/au2-ci-failure-classifier</a> (private)</span>
   </footer>
 </main>
