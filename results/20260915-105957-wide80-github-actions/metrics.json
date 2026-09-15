@@ -1,0 +1,617 @@
+{
+  "run": {
+    "created_at": "2026-09-15T03:59:57+00:00",
+    "train_samples": 653,
+    "test_samples": 62,
+    "test_label_counts": {
+      "authentication": 6,
+      "compilation": 5,
+      "dependency": 5,
+      "infrastructure": 10,
+      "other": 18,
+      "test_assertion": 18
+    },
+    "draft_labels_in_test": 0,
+    "labels_sha256": "13813d6217e55d27",
+    "split_created_at": "2026-09-14T10:32:49+00:00",
+    "excerpt_profile": "wide80",
+    "source_filter": "github-actions"
+  },
+  "config": {
+    "categories": [
+      "compilation",
+      "test_assertion",
+      "dependency",
+      "authentication",
+      "infrastructure",
+      "other"
+    ],
+    "runbooks": {
+      "compilation": "docs/runbooks/compilation.md",
+      "test_assertion": "docs/runbooks/test_assertion.md",
+      "dependency": "docs/runbooks/dependency.md",
+      "authentication": "docs/runbooks/authentication.md",
+      "infrastructure": "docs/runbooks/infrastructure.md",
+      "other": "docs/runbooks/other.md",
+      "unknown": "docs/runbooks/unknown.md"
+    },
+    "fetch": {
+      "repos": [
+        "dotnet/aspire",
+        "microsoft/semantic-kernel",
+        "microsoft/vscode",
+        "microsoft/TypeScript",
+        "microsoft/playwright",
+        "python/cpython",
+        "home-assistant/core",
+        "grafana/grafana"
+      ],
+      "runs_per_repo": 40,
+      "max_per_workflow": 6,
+      "scan_limit": 300,
+      "timeout_seconds": 180
+    },
+    "excerpt": {
+      "strategy": "marker",
+      "context_before_error": 40,
+      "hint_budget": 40,
+      "hint_gap": 3,
+      "hint_padding": 3,
+      "hint_key_weight": 3,
+      "hint_recency_weight": 2,
+      "hint_anchor_lines": 5,
+      "tail_lines_without_marker": 40,
+      "max_key_lines": 15,
+      "max_lines_per_job": 120,
+      "max_total_lines": 300,
+      "max_line_chars": 400,
+      "profiles": {
+        "wide80": {
+          "context_before_error": 80
+        },
+        "diff": {
+          "strategy": "baseline-diff"
+        },
+        "hints": {
+          "strategy": "hints",
+          "hint_anchor_lines": 30
+        }
+      }
+    },
+    "split": {
+      "test_fraction": 0.3,
+      "seed": 42
+    },
+    "evaluation": {
+      "bootstrap_samples": 1000
+    },
+    "tfidf": {
+      "abstain_below": 0.4
+    },
+    "llm": {
+      "base_url": "https://openrouter.ai/api/v1/chat/completions",
+      "model": "nvidia/nemotron-3-super-120b-a12b:free",
+      "temperature": 0,
+      "max_tokens": 1024,
+      "timeout_seconds": 120,
+      "requests_per_minute": 15,
+      "max_retries": 3,
+      "max_excerpt_chars": 20000,
+      "abstain_below": 0.0
+    }
+  },
+  "triage": null,
+  "llm_usage": {
+    "model": "nvidia/nemotron-3-super-120b-a12b:free",
+    "prompt_version": "v1",
+    "answers": 62,
+    "mean_prompt_tokens": 3140.967741935484,
+    "mean_completion_tokens": 369.66129032258067,
+    "total_cost_usd": 0.0,
+    "median_latency_s": 5.775,
+    "unparseable": 2
+  },
+  "significance": {
+    "bootstrap_samples": 1000,
+    "intervals": [
+      {
+        "method": "rules",
+        "samples": 62,
+        "accuracy": 0.3709677419354839,
+        "accuracy_low": 0.14925373134328357,
+        "accuracy_high": 0.6227004716981132,
+        "macro_f1": 0.5218253968253969,
+        "macro_f1_low": 0.2727272727272727,
+        "macro_f1_high": 0.6000143461189973
+      },
+      {
+        "method": "tfidf",
+        "samples": 62,
+        "accuracy": 0.06451612903225806,
+        "accuracy_low": 0.012982850482850488,
+        "accuracy_high": 0.14584603658536585,
+        "macro_f1": 0.0606060606060606,
+        "macro_f1_low": 0.01332051282051283,
+        "macro_f1_high": 0.15384615384615385
+      },
+      {
+        "method": "llm",
+        "samples": 62,
+        "accuracy": 0.7258064516129032,
+        "accuracy_low": 0.5625,
+        "accuracy_high": 0.8666666666666667,
+        "macro_f1": 0.7126679455901467,
+        "macro_f1_low": 0.5272959956709957,
+        "macro_f1_high": 0.8121744748342492
+      }
+    ],
+    "pairs": [
+      {
+        "a": "rules",
+        "b": "tfidf",
+        "samples": 62,
+        "a_only": 19,
+        "b_only": 0,
+        "p_value": 3.814697265625e-06
+      },
+      {
+        "a": "rules",
+        "b": "llm",
+        "samples": 62,
+        "a_only": 3,
+        "b_only": 25,
+        "p_value": 2.744048833847046e-05
+      },
+      {
+        "a": "tfidf",
+        "b": "llm",
+        "samples": 62,
+        "a_only": 1,
+        "b_only": 42,
+        "p_value": 1.000444171950221e-11
+      }
+    ]
+  },
+  "cross_validation": [
+    {
+      "method": "rules",
+      "folds": 5,
+      "scored": 194,
+      "accuracy_mean": 0.320685341211657,
+      "accuracy_std": 0.17160276205302077,
+      "macro_f1_mean": 0.3948588666235725,
+      "macro_f1_std": 0.15109231159003275,
+      "abstention_mean": 0.52290458474669
+    },
+    {
+      "method": "tfidf",
+      "folds": 5,
+      "scored": 194,
+      "accuracy_mean": 0.03025641025641026,
+      "accuracy_std": 0.04486813171860931,
+      "macro_f1_mean": 0.045714285714285714,
+      "macro_f1_std": 0.06402947167227281,
+      "abstention_mean": 0.9697435897435897
+    },
+    {
+      "method": "llm",
+      "folds": 4,
+      "scored": 62,
+      "accuracy_mean": 0.7776098901098901,
+      "accuracy_std": 0.19146091699242285,
+      "macro_f1_mean": 0.7708028083028083,
+      "macro_f1_std": 0.2055446330703766,
+      "abstention_mean": 0.09354395604395603
+    }
+  ],
+  "methods": {
+    "rules": {
+      "summary": {
+        "n": 62,
+        "accuracy": 0.3709677419354839,
+        "abstention_rate": 0.5483870967741935,
+        "accuracy_when_answered": 0.8214285714285714,
+        "macro_f1": 0.5218253968253969,
+        "ms_per_sample": 1.2269080644698753
+      },
+      "per_category": [
+        {
+          "category": "compilation",
+          "precision": 0.5714285714285714,
+          "recall": 0.8,
+          "f1": 0.6666666666666666,
+          "support": 5,
+          "predicted": 7
+        },
+        {
+          "category": "test_assertion",
+          "precision": 1.0,
+          "recall": 0.5555555555555556,
+          "f1": 0.7142857142857143,
+          "support": 18,
+          "predicted": 10
+        },
+        {
+          "category": "dependency",
+          "precision": 1.0,
+          "recall": 0.6,
+          "f1": 0.7499999999999999,
+          "support": 5,
+          "predicted": 3
+        },
+        {
+          "category": "authentication",
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 6,
+          "predicted": 6
+        },
+        {
+          "category": "infrastructure",
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 10,
+          "predicted": 1
+        },
+        {
+          "category": "other",
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 18,
+          "predicted": 1
+        }
+      ],
+      "confusion": [
+        {
+          "label": "compilation",
+          "compilation": 4,
+          "test_assertion": 0,
+          "dependency": 0,
+          "authentication": 0,
+          "infrastructure": 1,
+          "other": 0,
+          "unknown": 0
+        },
+        {
+          "label": "test_assertion",
+          "compilation": 0,
+          "test_assertion": 10,
+          "dependency": 0,
+          "authentication": 0,
+          "infrastructure": 0,
+          "other": 1,
+          "unknown": 7
+        },
+        {
+          "label": "dependency",
+          "compilation": 2,
+          "test_assertion": 0,
+          "dependency": 3,
+          "authentication": 0,
+          "infrastructure": 0,
+          "other": 0,
+          "unknown": 0
+        },
+        {
+          "label": "authentication",
+          "compilation": 0,
+          "test_assertion": 0,
+          "dependency": 0,
+          "authentication": 6,
+          "infrastructure": 0,
+          "other": 0,
+          "unknown": 0
+        },
+        {
+          "label": "infrastructure",
+          "compilation": 0,
+          "test_assertion": 0,
+          "dependency": 0,
+          "authentication": 0,
+          "infrastructure": 0,
+          "other": 0,
+          "unknown": 10
+        },
+        {
+          "label": "other",
+          "compilation": 1,
+          "test_assertion": 0,
+          "dependency": 0,
+          "authentication": 0,
+          "infrastructure": 0,
+          "other": 0,
+          "unknown": 17
+        }
+      ],
+      "by_source": [
+        {
+          "source": "github-actions",
+          "samples": 55,
+          "accuracy": 0.3090909090909091,
+          "abstention_rate": 0.6
+        },
+        {
+          "source": "github-actions (targeted-auth)",
+          "samples": 7,
+          "accuracy": 0.8571428571428571,
+          "abstention_rate": 0.14285714285714285
+        }
+      ]
+    },
+    "tfidf": {
+      "summary": {
+        "n": 62,
+        "accuracy": 0.06451612903225806,
+        "abstention_rate": 0.7903225806451613,
+        "accuracy_when_answered": 0.3076923076923077,
+        "macro_f1": 0.0606060606060606,
+        "ms_per_sample": 6.200935484112931
+      },
+      "per_category": [
+        {
+          "category": "compilation",
+          "precision": null,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 5,
+          "predicted": 0
+        },
+        {
+          "category": "test_assertion",
+          "precision": 1.0,
+          "recall": 0.2222222222222222,
+          "f1": 0.3636363636363636,
+          "support": 18,
+          "predicted": 4
+        },
+        {
+          "category": "dependency",
+          "precision": null,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 5,
+          "predicted": 0
+        },
+        {
+          "category": "authentication",
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 6,
+          "predicted": 9
+        },
+        {
+          "category": "infrastructure",
+          "precision": null,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 10,
+          "predicted": 0
+        },
+        {
+          "category": "other",
+          "precision": null,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 18,
+          "predicted": 0
+        }
+      ],
+      "confusion": [
+        {
+          "label": "compilation",
+          "compilation": 0,
+          "test_assertion": 0,
+          "dependency": 0,
+          "authentication": 0,
+          "infrastructure": 0,
+          "other": 0,
+          "unknown": 5
+        },
+        {
+          "label": "test_assertion",
+          "compilation": 0,
+          "test_assertion": 4,
+          "dependency": 0,
+          "authentication": 0,
+          "infrastructure": 0,
+          "other": 0,
+          "unknown": 14
+        },
+        {
+          "label": "dependency",
+          "compilation": 0,
+          "test_assertion": 0,
+          "dependency": 0,
+          "authentication": 0,
+          "infrastructure": 0,
+          "other": 0,
+          "unknown": 5
+        },
+        {
+          "label": "authentication",
+          "compilation": 0,
+          "test_assertion": 0,
+          "dependency": 0,
+          "authentication": 0,
+          "infrastructure": 0,
+          "other": 0,
+          "unknown": 6
+        },
+        {
+          "label": "infrastructure",
+          "compilation": 0,
+          "test_assertion": 0,
+          "dependency": 0,
+          "authentication": 1,
+          "infrastructure": 0,
+          "other": 0,
+          "unknown": 9
+        },
+        {
+          "label": "other",
+          "compilation": 0,
+          "test_assertion": 0,
+          "dependency": 0,
+          "authentication": 8,
+          "infrastructure": 0,
+          "other": 0,
+          "unknown": 10
+        }
+      ],
+      "by_source": [
+        {
+          "source": "github-actions",
+          "samples": 55,
+          "accuracy": 0.07272727272727272,
+          "abstention_rate": 0.7818181818181819
+        },
+        {
+          "source": "github-actions (targeted-auth)",
+          "samples": 7,
+          "accuracy": 0.0,
+          "abstention_rate": 0.8571428571428571
+        }
+      ]
+    },
+    "llm": {
+      "summary": {
+        "n": 62,
+        "accuracy": 0.7258064516129032,
+        "abstention_rate": 0.09677419354838712,
+        "accuracy_when_answered": 0.8035714285714286,
+        "macro_f1": 0.7126679455901467,
+        "ms_per_sample": 0.04306612930621111
+      },
+      "per_category": [
+        {
+          "category": "compilation",
+          "precision": 0.625,
+          "recall": 1.0,
+          "f1": 0.7692307692307693,
+          "support": 5,
+          "predicted": 8
+        },
+        {
+          "category": "test_assertion",
+          "precision": 0.9375,
+          "recall": 0.8333333333333334,
+          "f1": 0.8823529411764706,
+          "support": 18,
+          "predicted": 16
+        },
+        {
+          "category": "dependency",
+          "precision": 0.42857142857142855,
+          "recall": 0.6,
+          "f1": 0.5,
+          "support": 5,
+          "predicted": 7
+        },
+        {
+          "category": "authentication",
+          "precision": 0.75,
+          "recall": 1.0,
+          "f1": 0.8571428571428571,
+          "support": 6,
+          "predicted": 8
+        },
+        {
+          "category": "infrastructure",
+          "precision": 0.75,
+          "recall": 0.3,
+          "f1": 0.4285714285714285,
+          "support": 10,
+          "predicted": 4
+        },
+        {
+          "category": "other",
+          "precision": 1.0,
+          "recall": 0.7222222222222222,
+          "f1": 0.8387096774193548,
+          "support": 18,
+          "predicted": 13
+        }
+      ],
+      "confusion": [
+        {
+          "label": "compilation",
+          "compilation": 5,
+          "test_assertion": 0,
+          "dependency": 0,
+          "authentication": 0,
+          "infrastructure": 0,
+          "other": 0,
+          "unknown": 0
+        },
+        {
+          "label": "test_assertion",
+          "compilation": 1,
+          "test_assertion": 15,
+          "dependency": 0,
+          "authentication": 0,
+          "infrastructure": 1,
+          "other": 0,
+          "unknown": 1
+        },
+        {
+          "label": "dependency",
+          "compilation": 1,
+          "test_assertion": 0,
+          "dependency": 3,
+          "authentication": 1,
+          "infrastructure": 0,
+          "other": 0,
+          "unknown": 0
+        },
+        {
+          "label": "authentication",
+          "compilation": 0,
+          "test_assertion": 0,
+          "dependency": 0,
+          "authentication": 6,
+          "infrastructure": 0,
+          "other": 0,
+          "unknown": 0
+        },
+        {
+          "label": "infrastructure",
+          "compilation": 0,
+          "test_assertion": 0,
+          "dependency": 2,
+          "authentication": 1,
+          "infrastructure": 3,
+          "other": 0,
+          "unknown": 4
+        },
+        {
+          "label": "other",
+          "compilation": 1,
+          "test_assertion": 1,
+          "dependency": 2,
+          "authentication": 0,
+          "infrastructure": 0,
+          "other": 13,
+          "unknown": 1
+        }
+      ],
+      "by_source": [
+        {
+          "source": "github-actions",
+          "samples": 55,
+          "accuracy": 0.7090909090909091,
+          "abstention_rate": 0.10909090909090909
+        },
+        {
+          "source": "github-actions (targeted-auth)",
+          "samples": 7,
+          "accuracy": 0.8571428571428571,
+          "abstention_rate": 0.0
+        }
+      ]
+    }
+  }
+}
