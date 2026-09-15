@@ -1,0 +1,56 @@
+{
+  "created_at": "2026-09-15T07:57:37+00:00",
+  "prompt_version": "panel-v1",
+  "models": [
+    "nex-agi/nex-n2.5-pro:free",
+    "cohere/north-mini-code:free",
+    "dots-studio/dots-3-note-preview:free"
+  ],
+  "samples": 80,
+  "buckets": {
+    "confirmed": 72,
+    "contested": 6,
+    "split": 2
+  },
+  "majority_agreement_with_draft": 0.9230769230769231,
+  "fleiss_kappa_all_answered": 0.8668846333489023,
+  "fleiss_samples": 76,
+  "per_model": [
+    {
+      "model": "nex-agi/nex-n2.5-pro:free",
+      "answered": 80,
+      "unknown": 3,
+      "n": 77,
+      "agreement": 0.922077922077922,
+      "agreement_low": 0.8333333333333334,
+      "agreement_high": 1.0,
+      "kappa": 0.8780680918448139,
+      "kappa_low": 0.730846113928397,
+      "kappa_high": 1.0
+    },
+    {
+      "model": "cohere/north-mini-code:free",
+      "answered": 80,
+      "unknown": 0,
+      "n": 80,
+      "agreement": 0.875,
+      "agreement_low": 0.8081944215217033,
+      "agreement_high": 0.9405107973421927,
+      "kappa": 0.8151998151998152,
+      "kappa_low": 0.7028692422313298,
+      "kappa_high": 0.9095256444254292
+    },
+    {
+      "model": "dots-studio/dots-3-note-preview:free",
+      "answered": 80,
+      "unknown": 1,
+      "n": 79,
+      "agreement": 0.8987341772151899,
+      "agreement_low": 0.8271604938271605,
+      "agreement_high": 0.9629742547425474,
+      "kappa": 0.8523364485981308,
+      "kappa_low": 0.7487210359947033,
+      "kappa_high": 0.9445753438462833
+    }
+  ]
+}
