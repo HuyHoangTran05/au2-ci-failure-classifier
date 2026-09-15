@@ -13,6 +13,8 @@ COMMANDS = {
     "excerpt-eval": "measure how well excerpts keep LogChunks' marked failure chunks",
     "label": "label excerpts by hand",
     "agreement": "compare blind relabels with draft labels (Cohen's kappa, label bias per classifier)",
+    "panel-run": "ask a panel of LLMs to relabel the blind-round test samples",
+    "panel-report": "panel agreement, Fleiss' kappa and the samples a person should review",
     "split": "split labelled samples into train and test sets",
     "rules": "inspect keyword-rule predictions on the train set",
     "tune-tfidf": "choose the TF-IDF abstain threshold by cross-validation on the train set",
@@ -23,7 +25,8 @@ COMMANDS = {
 }
 # Commands whose module name differs from the command name.
 MODULES = {"import-logchunks": "logchunks", "llm-run": "llm", "excerpt-eval": "excerpt_eval",
-           "fetch-baselines": "baselines", "tune-tfidf": "tune_tfidf"}
+           "fetch-baselines": "baselines", "tune-tfidf": "tune_tfidf",
+           "panel-run": "panel:run", "panel-report": "panel:report"}
 
 
 def main() -> None:
@@ -36,8 +39,9 @@ def main() -> None:
             print(f"  {name:<9} {description}")
         print("\nRun `python -m ci_classifier <command> -h` for a command's options.")
         raise SystemExit(0 if len(sys.argv) > 1 and sys.argv[1] in ("-h", "--help") else 2)
-    module = MODULES.get(sys.argv[1], sys.argv[1])
-    import_module(f"ci_classifier.{module}").main(sys.argv[2:])
+    # "module" runs module.main; "module:function" runs another entry point of a module with several commands.
+    module, _, function = MODULES.get(sys.argv[1], sys.argv[1]).partition(":")
+    getattr(import_module(f"ci_classifier.{module}"), function or "main")(sys.argv[2:])
 
 
 if __name__ == "__main__":

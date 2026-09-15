@@ -86,3 +86,16 @@ requests_per_minute = 15    # model miễn phí giới hạn khoảng 20 lượt
 max_retries = 3
 max_excerpt_chars = 20000   # đoạn log dài hơn thì giữ phần cuối
 abstain_below = 0.0         # độ tự tin (model tự khai) thấp hơn ngưỡng này thì coi là "unknown"; 0 = tắt
+
+[panel]
+# Hội đồng LLM gán lại các mẫu của lượt gán mù (panel-run / panel-report). Ba họ model khác nhau; không dùng Nemotron
+# (đang là bộ phân loại được đánh giá) và không dùng Claude (đã gán nhãn nháp). Đã thử gọi được ngày 15/09/2026;
+# gemma-4 và laguna bị giới hạn upstream (429), inkling chỉ cho dùng qua agentic harness (403).
+models = [
+    "nex-agi/nex-n2.5-pro:free",
+    "cohere/north-mini-code:free",
+    "dots-studio/dots-3-note-preview:free",
+]
+sample_count = 80
+max_tokens = 2048           # model có bước suy luận cần chỗ trước khi trả JSON
+requests_per_minute = 15

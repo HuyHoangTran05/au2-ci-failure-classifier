@@ -8,6 +8,7 @@ Usage:
     python -m ci_classifier label --accept-drafts <name>   # drafts were checked elsewhere; keep them as human labels
     python -m ci_classifier label --blind --labeler <name> --count 80   # relabel test samples without seeing labels
     python -m ci_classifier label --adjudicate --labeler <name>         # settle blind vs draft disagreements
+    python -m ci_classifier label --adjudicate --panel --labeler <name> # settle samples the LLM panel disputed
 
 For LogChunks samples, a label is also applied to unlabelled samples with an identical chunk
 (recorded in the note); pass --no-propagate to label each one yourself.
@@ -24,7 +25,7 @@ import random
 import time
 import webbrowser
 
-from . import agreement
+from . import agreement, panel
 from .common import (DRAFT_LABELER, append_label, excerpt_path, load_config, read_excerpt, read_labels, read_manifest,
                      read_split)
 
@@ -101,12 +102,17 @@ def run_blind(queue: list[str], manifest: dict[str, dict], categories: list[str]
     return done
 
 
-def adjudication_choice(sample_id: str, candidates: tuple[str, str], categories: list[str]) -> str | None:
-    """Show two candidate labels in a per-sample random order, without saying which is the draft."""
-    first, second = sorted(candidates)
-    if random.Random(sample_id).random() < 0.5:
-        first, second = second, first
-    print(f"Hai nhãn đang bất đồng (thứ tự ngẫu nhiên, không cho biết nhãn nào của ai): {first}  |  {second}")
+def shuffled_candidates(sample_id: str, candidates) -> list[str]:
+    """Distinct candidate labels in a per-sample random order that does not reveal where each came from."""
+    order = sorted(set(candidates))
+    random.Random(sample_id).shuffle(order)
+    return order
+
+
+def adjudication_choice(sample_id: str, candidates, categories: list[str]) -> str | None:
+    """Show the disputed labels in a per-sample random order, without saying which is the draft."""
+    shown = "  |  ".join(shuffled_candidates(sample_id, candidates))
+    print(f"Các nhãn đang bất đồng (thứ tự ngẫu nhiên, không cho biết nhãn nào của ai): {shown}")
     menu = "   ".join(f"[{i}] {name}" for i, name in enumerate(categories, start=1))
     while True:
         answer = input(f"{menu}\n[s] bỏ qua   [q] thoát > ").strip().lower()
@@ -119,19 +125,18 @@ def adjudication_choice(sample_id: str, candidates: tuple[str, str], categories:
         print("Không hợp lệ, nhập lại.")
 
 
-def run_adjudication(queue: list[str], manifest: dict[str, dict], categories: list[str], labeler: str,
-                     drafts: dict[str, str], blind: dict[str, dict]) -> int:
+def run_adjudication(items: list[tuple[str, list[str], str]], manifest: dict[str, dict], categories: list[str],
+                     labeler: str) -> int:
+    """items: (sample, candidate labels, provenance note). The chosen label is appended to labels.jsonl."""
     settled = 0
-    for index, sample_id in enumerate(queue, start=1):
-        record = manifest[sample_id]
-        show(sample_id, record, f"[phân xử {index}/{len(queue)}]", full_excerpt=True)
-        draft, relabel = drafts[sample_id], blind[sample_id]["label"]
-        chosen = adjudication_choice(sample_id, (draft, relabel), categories)
+    for index, (sample_id, candidates, provenance) in enumerate(items, start=1):
+        show(sample_id, manifest[sample_id], f"[phân xử {index}/{len(items)}]", full_excerpt=True)
+        chosen = adjudication_choice(sample_id, candidates, categories)
         if chosen is None:
             break
         if not chosen:
             continue
-        append_label(sample_id, chosen, f"{agreement.ADJUDICATED} by {labeler}: draft={draft}, blind={relabel}")
+        append_label(sample_id, chosen, f"{agreement.ADJUDICATED} by {labeler}: {provenance}")
         settled += 1
     return settled
 
@@ -161,6 +166,8 @@ def main(argv: list[str] | None = None) -> None:
                         help="relabel test samples without seeing their labels (stored in data/blind_labels.jsonl)")
     parser.add_argument("--adjudicate", action="store_true",
                         help="choose the final label where a blind label disagrees with the draft")
+    parser.add_argument("--panel", action="store_true",
+                        help="with --adjudicate: settle the samples the LLM panel disputed (panel-report)")
     parser.add_argument("--labeler", help="your name (required with --blind and --adjudicate)")
     parser.add_argument("--count", type=int, default=80, help="size of the blind sample (default 80)")
     args = parser.parse_args(argv)
@@ -194,10 +201,17 @@ def main(argv: list[str] | None = None) -> None:
         return
 
     if args.adjudicate:
-        drafts, blind = agreement.original_drafts(), agreement.read_blind(args.labeler)
-        queue = [sid for sid in agreement.adjudication_queue(blind, drafts, labels) if wanted(sid)]
-        print(f"{len(queue)} disagreements to settle. The chosen label becomes the label used by evaluate.")
-        settled = run_adjudication(queue, manifest, categories, args.labeler, drafts, blind)
+        if args.panel:
+            items = [item for item in panel.review_items(config)
+                     if wanted(item[0]) and not labels[item[0]].get("note", "").startswith(agreement.ADJUDICATED)]
+            print(f"{len(items)} samples the LLM panel disputed. Read each log; the chosen label becomes the label "
+                  "used by evaluate. Candidates are shuffled and do not show which one is the draft.")
+        else:
+            drafts, blind = agreement.original_drafts(), agreement.read_blind(args.labeler)
+            items = [(sid, [drafts[sid], blind[sid]["label"]], f"draft={drafts[sid]}, blind={blind[sid]['label']}")
+                     for sid in agreement.adjudication_queue(blind, drafts, labels) if wanted(sid)]
+            print(f"{len(items)} disagreements to settle. The chosen label becomes the label used by evaluate.")
+        settled = run_adjudication(items, manifest, categories, args.labeler)
         print(f"Settled {settled}. Re-run `python -m ci_classifier evaluate --cv 5` to score against the new labels.")
         return
 
