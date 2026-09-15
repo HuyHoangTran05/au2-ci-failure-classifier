@@ -1,7 +1,8 @@
 """Baseline 1: keyword rules.
 
 Categories are checked in priority order and the first match wins, so a dependency error that
-also produces "Build FAILED" is reported as dependency. No match returns "unknown".
+also produces "Build FAILED" is reported as dependency. A category may appear twice to give some of its
+patterns lower priority. No match returns "unknown".
 
 Usage (for tuning - look only at the train set, never at test):
     python -m ci_classifier rules --split train
@@ -20,16 +21,25 @@ RULES: list[tuple[str, list[str]]] = [
         r"No space left on device",
         r"The runner has received a shutdown signal",
         r"lost communication with the server",
-        r"The operation was canceled",
+        # Only the runner's own cancellation; a TaskCanceledException inside a test is a test failure.
+        r"##\[error\]The operation was canceled",
+        r"The operation was aborted due to timeout",
         r"has exceeded the maximum execution time",
         r"Could not resolve host",
         r"Connection reset by peer",
+        r"Couldn't establish HTTP connection|Could not create connection to|Empty reply from server",
+        r"no certificate subject alternative name",
         r"\b50[23] (?:Bad Gateway|Service Unavailable)",
+        r"HttpError: Server Error|\bstatus: 50[0234]\b",
+        r"exceeded your monthly quota|quota exceeded",
         r"\b(?:ETIMEDOUT|ECONNRESET|ECONNREFUSED)\b",
+        r"Disconnected, because no message in|\bDISCONNECTED\b",
+        r"exited with 124\.",  # coreutils `timeout` killed the build
         r"OOMKilled|out of memory|Killed.*signal 9",
     ]),
     ("authentication", [
-        r"Unauthori[sz]ed|HTTP 401|status code 401",
+        # Word boundaries keep "rejectUnauthorized" (a TLS option in Node logs) from matching.
+        r"\bUnauthori[sz]ed\b|HTTP 401|status code 401",
         r"403 Forbidden|HTTP 403",
         r"Bad credentials",
         r"[Aa]uthentication (?:failed|required)",
@@ -40,7 +50,10 @@ RULES: list[tuple[str, list[str]]] = [
         r"denied: requested access",
     ]),
     ("dependency", [
-        r"npm ERR!|npm error",
+        # Any failing npm script prints "npm ERR! code ELIFECYCLE", so only install-type errors count.
+        r"npm (?:ERR!|error) code E(?!LIFECYCLE)[A-Z0-9]+",
+        r"npm ERR! Failed at the \S+ (?:pre|post)?install script",
+        r"\bgyp ERR!",
         r"\bERESOLVE\b",
         r"No matching distribution found|ResolutionImpossible|Could not find a version that satisfies",
         r"Unable to find package|\bNU1(?:101|102|605)\b",
@@ -57,12 +70,16 @@ RULES: list[tuple[str, list[str]]] = [
         r"undefined reference to",
         r"cannot find symbol",
         r"\bSyntaxError\b",
-        r"Build FAILED",
     ]),
     ("other", [
-        r"would reformat|Code style issues|Formatting check failed",
-        r"\beslint\b.*\berrors?\b|\d+ problems? \(\d+ errors?",
-        r"\bruff\b.*\berror|\bflake8\b|\bmypy\b.*error",
+        r"would reformat|would be reformatted|Code style issues|Formatting check failed|mix format|dotnet format",
+        r"\beslint\b.*\berrors?\b|\d+ problems? \(\d+ errors?|✖ \d+ problems?|offenses? detected",
+        r"\bruff\b.*\berror|\bflake8\b|\bmypy\b.*error|Found \d+ errors? in \d+ files?",
+        r"\b(?:awesome_bot|markdownlint|stylelint|perlcritic|sphinx-lint|swiftlint|rubocop|pylint|gofmt|goimports"
+        r"|golangci-lint|phpstan)\b",
+        r"- hook id:|\bpre-commit\b",
+        r"[Oo]verfull \\hbox",
+        r"git diff --exit-code|(?:were|are) not committed|out of date|Please commit",
         r"[Mm]issing (?:required )?label",
     ]),
     ("test_assertion", [
@@ -74,6 +91,10 @@ RULES: list[tuple[str, list[str]]] = [
         r"\bFAILED\b",
         r"expect\(.*\)\.(?:to|not)",
         r"Result: FAILURE",
+    ]),
+    # MSBuild prints "Build FAILED" when tests fail too, so it only decides when nothing more specific matched.
+    ("compilation", [
+        r"Build FAILED",
     ]),
 ]
 
