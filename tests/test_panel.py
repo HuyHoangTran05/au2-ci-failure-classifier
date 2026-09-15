@@ -77,3 +77,36 @@ def test_run_stores_answers_resumes_and_hides_labels(tmp_path, monkeypatch, caps
 
     panel.run([])                     # everything stored: no new calls
     assert len(calls) == 4
+
+
+def test_retry_unparseable_replaces_only_failed_replies(tmp_path, monkeypatch):
+    config = {"categories": ["compilation", "other"], "split": {"seed": 1},
+              "llm": {"max_excerpt_chars": 1000},
+              "panel": {"models": MODELS[:1], "sample_count": 2, "max_tokens": 50, "retry_max_tokens": 500,
+                        "requests_per_minute": 60}}
+    replies = iter(["<think>out of tokens", '{"category": "other", "evidence": "e", "confidence": 0.9}',
+                    '{"category": "compilation", "evidence": "e", "confidence": 0.8}'])
+    budgets = []
+
+    class FakeClient:
+        def __init__(self, cfg, key, model):
+            budgets.append(cfg["max_tokens"])
+            self.model = model
+
+        def complete(self, messages):
+            return {"content": next(replies), "model": self.model, "usage": {}, "latency_s": 0.1}
+
+    monkeypatch.setattr(panel, "PANEL_LABELS", tmp_path / "panel.jsonl")
+    monkeypatch.setattr(panel, "load_config", lambda: config)
+    monkeypatch.setattr(panel, "panel_samples", lambda cfg, count=None: ["s1", "s2"])
+    monkeypatch.setattr(panel, "read_manifest", lambda: {"s1": {}, "s2": {}})
+    monkeypatch.setattr(panel, "read_excerpt", lambda sid: f"log of {sid}")
+    monkeypatch.setattr(llm, "load_api_key", lambda: "key")
+    monkeypatch.setattr(llm, "OpenRouterClient", FakeClient)
+
+    panel.run([])
+    assert panel.votes_for(["s1", "s2"], MODELS[:1], config) == {"s1": {MODELS[0]: UNKNOWN}, "s2": {MODELS[0]: "other"}}
+    panel.run(["--retry-unparseable"])        # only s1 is asked again, with the larger budget
+    assert budgets == [50, 500]
+    assert panel.votes_for(["s1", "s2"], MODELS[:1], config) == {"s1": {MODELS[0]: "compilation"},
+                                                                  "s2": {MODELS[0]: "other"}}

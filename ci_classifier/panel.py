@@ -32,6 +32,7 @@ from .split import group_of
 
 PANEL_LABELS = DATA / "panel_labels.jsonl"
 PANEL_PROMPT_VERSION = "panel-v1"
+UNPARSEABLE = "unparseable reply"  # evidence text llm.parse_response gives a reply without readable JSON
 
 PANEL_SYSTEM_PROMPT = """You label failed CI jobs for a research data set. Decide why the job failed, using exactly one category.
 
@@ -81,6 +82,7 @@ def input_sha(messages: list[dict]) -> str:
 
 
 def read_panel() -> dict[tuple[str, str, str], dict]:
+    """Latest answer per (model, prompt version, input); a retry appended later replaces the earlier reply."""
     return {(r["model"], r["prompt_version"], r["input_sha"]): r for r in read_jsonl(PANEL_LABELS)}
 
 
@@ -153,11 +155,15 @@ def run(argv: list[str] | None = None) -> None:
     parser.add_argument("--model", action="append", help="only this model (repeatable); default: [panel] models")
     parser.add_argument("--limit", type=int, default=None, help="maximum API calls per model this run")
     parser.add_argument("--count", type=int, default=None, help="sample size (default [panel] sample_count)")
+    parser.add_argument("--retry-unparseable", action="store_true",
+                        help="ask again, with [panel] retry_max_tokens, where a stored reply had no readable JSON "
+                             "(usually reasoning that used up max_tokens); the new answer replaces the old one")
     args = parser.parse_args(argv)
 
     panel_cfg, llm_cfg = config["panel"], config["llm"]
     models = args.model or panel_cfg["models"]
-    client_cfg = {**llm_cfg, "max_tokens": panel_cfg["max_tokens"], "requests_per_minute": panel_cfg["requests_per_minute"]}
+    max_tokens = panel_cfg["retry_max_tokens"] if args.retry_unparseable else panel_cfg["max_tokens"]
+    client_cfg = {**llm_cfg, "max_tokens": max_tokens, "requests_per_minute": panel_cfg["requests_per_minute"]}
     key = llm.load_api_key()
     clients = {m: llm.OpenRouterClient(client_cfg, key, m) for m in models}
     manifest, stored = read_manifest(), read_panel()
@@ -171,7 +177,9 @@ def run(argv: list[str] | None = None) -> None:
         messages = build_panel_messages(manifest[sid], read_excerpt(sid), llm_cfg["max_excerpt_chars"])
         sha = input_sha(messages)
         for model in list(active):
-            if (model, PANEL_PROMPT_VERSION, sha) in stored or (args.limit is not None and calls[model] >= args.limit):
+            previous = stored.get((model, PANEL_PROMPT_VERSION, sha))
+            wanted = previous is None or (args.retry_unparseable and previous["evidence"] == UNPARSEABLE)
+            if not wanted or (args.limit is not None and calls[model] >= args.limit):
                 continue
             try:
                 reply = clients[model].complete(messages)
@@ -191,7 +199,7 @@ def run(argv: list[str] | None = None) -> None:
                 "input_sha": sha, "category": category, "evidence": evidence, "confidence": confidence,
                 "prompt_tokens": usage.get("prompt_tokens"), "completion_tokens": usage.get("completion_tokens"),
                 "cost_usd": usage.get("cost", 0), "latency_s": reply["latency_s"], "raw": reply["content"][:2000],
-                "at": now_iso(),
+                "max_tokens": max_tokens, "retry_of_unparseable": previous is not None, "at": now_iso(),
             }
             append_jsonl(PANEL_LABELS, record)
             stored[(model, PANEL_PROMPT_VERSION, sha)] = record

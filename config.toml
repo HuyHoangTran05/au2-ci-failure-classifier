@@ -98,4 +98,5 @@ models = [
 ]
 sample_count = 80
 max_tokens = 2048           # model có bước suy luận cần chỗ trước khi trả JSON
+retry_max_tokens = 6144     # panel-run --retry-unparseable: 15/240 câu trả lời đầu hết 2048 token trước khi viết JSON
 requests_per_minute = 15
