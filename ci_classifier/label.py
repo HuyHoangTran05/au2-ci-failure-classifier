@@ -125,9 +125,38 @@ def adjudication_choice(sample_id: str, candidates, categories: list[str]) -> st
         print("Không hợp lệ, nhập lại.")
 
 
+PROPAGATED = "same chunk as"
+
+
+def sync_adjudicated_twins(labels: dict[str, dict], manifest: dict[str, dict]) -> int:
+    """Give every labelled sample with an identical LogChunks chunk the label adjudicated for its twin.
+
+    The blind round and the panel take one sample per identical chunk, so an adjudicated label must be copied to the
+    skipped twins, or the same log would carry two labels. Idempotent; returns the number of labels written.
+    """
+    by_chunk: dict[str, list[str]] = {}
+    for sid in labels:
+        key = chunk_key(manifest.get(sid, {}))
+        if key:
+            by_chunk.setdefault(key, []).append(sid)
+    written = 0
+    for sid, record in list(labels.items()):
+        note = record.get("note", "")
+        if not note.startswith(agreement.ADJUDICATED) or PROPAGATED in note:
+            continue
+        for twin in by_chunk.get(chunk_key(manifest.get(sid, {})), []):
+            if twin != sid and labels[twin]["label"] != record["label"]:
+                note_twin = f"{agreement.ADJUDICATED} ({PROPAGATED} {sid}): {note.split(': ', 1)[-1]}"
+                append_label(twin, record["label"], note_twin)
+                labels[twin] = {**labels[twin], "label": record["label"], "note": note_twin}
+                written += 1
+    return written
+
+
 def run_adjudication(items: list[tuple[str, list[str], str]], manifest: dict[str, dict], categories: list[str],
                      labeler: str) -> int:
-    """items: (sample, candidate labels, provenance note). The chosen label is appended to labels.jsonl."""
+    """items: (sample, candidate labels, provenance note). The chosen label is appended to labels.jsonl;
+    call sync_adjudicated_twins afterwards to copy it to identical-chunk twins."""
     settled = 0
     for index, (sample_id, candidates, provenance) in enumerate(items, start=1):
         show(sample_id, manifest[sample_id], f"[phân xử {index}/{len(items)}]", full_excerpt=True)
@@ -168,6 +197,9 @@ def main(argv: list[str] | None = None) -> None:
                         help="choose the final label where a blind label disagrees with the draft")
     parser.add_argument("--panel", action="store_true",
                         help="with --adjudicate: settle the samples the LLM panel disputed (panel-report)")
+    parser.add_argument("--sync-twins", action="store_true",
+                        help="copy adjudicated labels to samples with an identical LogChunks chunk (also done after "
+                             "--adjudicate)")
     parser.add_argument("--labeler", help="your name (required with --blind and --adjudicate)")
     parser.add_argument("--count", type=int, default=80, help="size of the blind sample (default 80)")
     args = parser.parse_args(argv)
@@ -181,6 +213,10 @@ def main(argv: list[str] | None = None) -> None:
 
     def wanted(sid: str) -> bool:
         return sid in manifest and (args.source is None or source_of(manifest[sid]) == args.source)
+
+    if args.sync_twins:
+        print(f"Copied adjudicated labels to {sync_adjudicated_twins(labels, manifest)} identical-chunk samples.")
+        return
 
     if args.accept_drafts:
         accepted = accept_drafts(labels, wanted, args.accept_drafts)
@@ -212,6 +248,9 @@ def main(argv: list[str] | None = None) -> None:
                      for sid in agreement.adjudication_queue(blind, drafts, labels) if wanted(sid)]
             print(f"{len(items)} disagreements to settle. The chosen label becomes the label used by evaluate.")
         settled = run_adjudication(items, manifest, categories, args.labeler)
+        twins = sync_adjudicated_twins(read_labels(), manifest)
+        if twins:
+            print(f"Copied adjudicated labels to {twins} samples with an identical LogChunks chunk.")
         print(f"Settled {settled}. Re-run `python -m ci_classifier evaluate --cv 5` to score against the new labels.")
         return
 

@@ -65,6 +65,21 @@ def test_adjudication_queue_needs_disagreement_and_no_prior_adjudication():
     assert agreement.adjudication_queue(blind, drafts, labels) == ["b"]
 
 
+def test_sync_adjudicated_twins_copies_label_once(data_files):
+    manifest = {"rep": {"chunk": "same  error"}, "twin": {"chunk": "same error"}, "other": {"chunk": "different"}}
+    labels = {
+        "rep": {"label": "compilation", "note": "adjudicated by me: panel contested: draft=test_assertion"},
+        "twin": {"label": "test_assertion", "note": "auto: same chunk as rep"},
+        "other": {"label": "test_assertion", "note": ""},
+    }
+    assert label.sync_adjudicated_twins(labels, manifest) == 1
+    stored = common.read_labels()
+    assert stored["twin"]["label"] == "compilation"
+    assert stored["twin"]["note"].startswith("adjudicated (same chunk as rep)")
+    assert "other" not in stored
+    assert label.sync_adjudicated_twins(labels, manifest) == 0          # idempotent
+
+
 def test_run_blind_stores_labels_skips_and_never_touches_labels(data_files, monkeypatch, capsys):
     manifest = {sid: {"repo": "o/r", "workflow": "CI", "title": "t", "chunk": "boom", "url": ""} for sid in ("x", "y")}
     answers = iter(["2", "", "s"])            # x: category 2 with empty note; y: skip
