@@ -34,10 +34,10 @@ Tài liệu bàn giao để một phiên làm việc mới (người hoặc Clau
 > - Test 291 mẫu (`results/20260915-115444/`): luật 0.34, TF-IDF 0.57, LLM 0.71, hybrid 0.74.
 > - Gán mù lượt 1 (`HuyHoangTran`): 80 mẫu trong 8.8 phút, kappa 0.25 → ghi nhận là gán quá nhanh, không dùng.
 > - Hội đồng 3 LLM (`panel-run`, `panel-report`, `results/20260915-145737-panel/`): kappa với nhãn nháp 0.82–0.88,
->   Fleiss 0.87; 72 confirmed / 6 contested / 2 split. **8 mẫu chờ người dùng `label --adjudicate --panel`.**
->   Không cho người dùng xem `votes.csv` (có nhãn nháp) trước khi phân xử.
+>   Fleiss 0.87; 72 confirmed / 6 contested / 2 split. Người dùng đã phân xử cả 8 mẫu (3 giữ nháp, 4 theo đa số, 1 nhãn khác).
+> - Sau phân xử (`results/20260915-171321/`): luật 0.34, TF-IDF 0.57, LLM 0.715, hybrid 0.746. Báo cáo: `docs/reports/2026-09-15-llm-panel.md`.
 > - Báo cáo: `docs/reports/2026-09-15-tfidf-threshold-and-hybrid.md`, `docs/reports/2026-09-15-rules-ci-and-llm-train.md`.
-> - **Việc tiếp theo, theo thứ tự:** (1) người dùng phân xử 8 mẫu hội đồng tranh cãi → `evaluate --cv 5`;
+> - **Việc tiếp theo, theo thứ tự:** (1) hội đồng cho các mẫu test còn lại (tăng `[panel] sample_count`; 80 mẫu đầu giữ nguyên thứ tự, mẫu trùng đoạn lỗi LogChunks bị bỏ) → phân xử → `evaluate --cv 5`;
 >   (2) `llm-run --split train --limit 40` mỗi ngày; (3) chỉ sau khi nhãn đã chốt mới làm prompt v2 hoặc thêm dữ liệu.
 >   Đừng tinh chỉnh thêm trên tập test trước bước (1).
 

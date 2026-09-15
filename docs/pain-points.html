@@ -143,7 +143,7 @@ Build FAILED.
     <div class="meta">
       <span>944 mẫu có nhãn</span>
       <span>194 log GitHub Actions · 750 log Travis (LogChunks)</span>
-      <span>Nhãn: nháp của Claude; 80 mẫu test đã qua hội đồng 3 LLM, 8 mẫu chờ người phân xử</span>
+      <span>Nhãn: nháp của Claude; 80/291 mẫu test đã qua hội đồng 3 LLM và người phân xử phần tranh cãi</span>
     </div>
   </header>
 
@@ -175,8 +175,12 @@ Build FAILED.
         <p>80 mẫu test trong 8,8 phút (trung vị 6 giây/mẫu), kappa 0,25 so với nhãn nháp. Trong 41 mẫu bất đồng, 18 mẫu có dòng log ghi rõ loại lỗi của nhãn nháp, chỉ 2 mẫu ngược lại. Lượt này được ghi nhận là <em>gán quá nhanh</em> và không dùng để kết luận.</p>
       </div>
       <div class="pain">
-        <div class="stack"><span class="status wait">Chờ phân xử</span><h3>Hội đồng 3 LLM</h3></div>
-        <p>Ba model thuộc ba họ khác nhau (không dùng Claude hay Nemotron) gán độc lập cùng 80 mẫu, với đúng thông tin người gán thấy. Mỗi model đồng ý với nhãn nháp 88–92% (kappa 0,82–0,88); ba model đồng ý với nhau ở mức Fleiss' kappa 0,87. Có 72 mẫu được xác nhận; <strong>8 mẫu bị tranh cãi</strong> đang chờ người đọc lại bằng <code>label --adjudicate --panel</code>. Nhãn dễ tái tạo, nhưng chưa chứng minh là đúng: các LLM có thể cùng sai.</p>
+        <div class="stack"><span class="status done">Đã làm</span><h3>Hội đồng 3 LLM</h3></div>
+        <p>Ba model thuộc ba họ khác nhau (không dùng Claude hay Nemotron) gán độc lập cùng 80 mẫu, với đúng thông tin người gán thấy. Mỗi model đồng ý với nhãn nháp 88–92% (kappa 0,82–0,88); ba model đồng ý với nhau ở mức Fleiss' kappa 0,87. 72 mẫu được xác nhận; 8 mẫu bị tranh cãi đã được người phân xử (3 giữ nhãn nháp, 5 đổi). Điểm gần như không đổi (LLM 0,708 → 0,715). Bộ phân loại LLM chỉ đúng 3/8 mẫu bị tranh cãi, so với 58/72 mẫu được xác nhận.</p>
+      </div>
+      <div class="pain">
+        <div class="stack"><span class="status wait">Tiếp theo</span><h3>211 mẫu test còn lại</h3></div>
+        <p>Chạy hội đồng cho phần còn lại của tập test (khoảng 630 lần gọi, chia đợt vì máy ít RAM) và phân xử các mẫu bị tranh cãi. Sau đó mới làm prompt v2 cho bộ phân loại LLM, tập trung vào <code>infrastructure</code> (F1 0,43).</p>
       </div>
     </div>
   </section>
@@ -269,17 +273,17 @@ Build FAILED.
           <tr><th>Phương pháp</th><th class="n">Accuracy test</th><th class="n">Chỉ GitHub Actions</th><th class="n">CV 5 lần</th><th class="n">Trả lời unknown</th><th class="n">Macro F1</th></tr>
         </thead>
         <tbody>
-          <tr><td>Luật từ khóa (regex)<span class="ci">đã sửa trên train</span></td><td class="n">0.34<span class="ci">[0.23, 0.46]</span></td><td class="n">0.35</td><td class="n">0.42 ± 0.09*</td><td class="n">57%</td><td class="n">0.40</td></tr>
-          <tr><td>TF-IDF + logistic regression<span class="ci">ngưỡng 0.2, chọn trên train</span></td><td class="n">0.57<span class="ci">[0.44, 0.69]</span></td><td class="n">0.32</td><td class="n">0.62 ± 0.07</td><td class="n">0%</td><td class="n">0.29</td></tr>
-          <tr><td>LLM (nemotron-3-super, miễn phí)</td><td class="n">0.71<span class="ci">[0.59, 0.80]</span></td><td class="n">0.69</td><td class="n">0.70 ± 0.08</td><td class="n">8%</td><td class="n">0.67</td></tr>
-          <tr class="best"><td>Hybrid<span class="ci">LLM, TF-IDF khi LLM trả unknown</span></td><td class="n">0.74<span class="ci">[0.62, 0.83]</span></td><td class="n">0.71</td><td class="n">0.73 ± 0.06</td><td class="n">0%</td><td class="n">0.67</td></tr>
+          <tr><td>Luật từ khóa (regex)<span class="ci">đã sửa trên train</span></td><td class="n">0.34<span class="ci">[0.22, 0.46]</span></td><td class="n">0.34</td><td class="n">0.42 ± 0.11*</td><td class="n">57%</td><td class="n">0.42</td></tr>
+          <tr><td>TF-IDF + logistic regression<span class="ci">ngưỡng 0.2, chọn trên train</span></td><td class="n">0.57<span class="ci">[0.44, 0.69]</span></td><td class="n">0.31</td><td class="n">0.63 ± 0.04</td><td class="n">0%</td><td class="n">0.30</td></tr>
+          <tr><td>LLM (nemotron-3-super, miễn phí)</td><td class="n">0.71<span class="ci">[0.61, 0.81]</span></td><td class="n">0.71</td><td class="n">0.71 ± 0.07</td><td class="n">8%</td><td class="n">0.69</td></tr>
+          <tr class="best"><td>Hybrid<span class="ci">LLM, TF-IDF khi LLM trả unknown</span></td><td class="n">0.75<span class="ci">[0.63, 0.84]</span></td><td class="n">0.73</td><td class="n">0.73 ± 0.05</td><td class="n">0%</td><td class="n">0.68</td></tr>
         </tbody>
       </table>
     </div>
     <p class="note">Chỉ GitHub Actions: 62 mẫu test, khoảng tin cậy khoảng ±0.17. Cross-validation của LLM và hybrid chỉ tính 333 mẫu đã có câu trả lời lưu sẵn (291 mẫu test + 42 mẫu train). * Luật được sửa trên chính các mẫu train, nên con số CV của luật là lạc quan.</p>
     <ul class="points">
       <li><strong>Luật từ chối quá nhiều; TF-IDF từng bị ngưỡng quá cao.</strong> Luật vẫn trả unknown cho 57% mẫu test và chưa đoán đúng mẫu <code>infrastructure</code> nào (0/21). Ngưỡng abstain cũ của TF-IDF (0.4) khiến 73% mẫu bị trả unknown; chọn lại bằng cross-validation trên train (0.2) thì accuracy lên 0.57, nhưng TF-IDF vẫn yếu ở loại hiếm và trên log GitHub Actions (0.32).</li>
-      <li><strong>LLM tốt hơn rõ nhưng có thể bị thiên vị lên.</strong> Nhãn test do một LLM khác gán nháp. Loại yếu nhất của LLM là <code>infrastructure</code> (F1 0.39), hay nhầm với <code>test_assertion</code>. Model miễn phí bị giới hạn lượt gọi và đôi khi bị chặn tạm thời.</li>
+      <li><strong>LLM tốt hơn rõ nhưng có thể bị thiên vị lên.</strong> Nhãn test do một LLM khác gán nháp. Loại yếu nhất của LLM là <code>infrastructure</code> (F1 0.43), hay nhầm với <code>test_assertion</code>. Model miễn phí bị giới hạn lượt gọi và đôi khi bị chặn tạm thời.</li>
       <li><strong>Tập test nhỏ.</strong> Đã có khoảng tin cậy và cross-validation, nhưng khoảng vẫn rộng khoảng ±0.1 vì chỉ có 43 nhóm workflow. Riêng log GitHub Actions (định dạng mục tiêu) chỉ có 62 mẫu.</li>
       <li><strong>TF-IDF học từ vựng Travis.</strong> 80% dữ liệu train là LogChunks, nên trên log GitHub Actions TF-IDF chỉ đạt 0.32 và hybrid gần như không giúp thêm (đúng thêm 1 mẫu).</li>
       <li><strong>Mẫu lấy có mục tiêu gây thiên vị.</strong> Log authentication được tìm bằng từ khóa, nên luật đạt 0.86 trên nhóm này. Nhóm này được báo cáo tách riêng, không tính là thành tích.</li>
@@ -303,7 +307,7 @@ Build FAILED.
   </section>
 
   <footer>
-    <span>Nguồn số liệu: <code>results/20260915-115444/report.md</code>, <code>results/20260915-115512-github-actions/report.md</code>, <code>results/20260915-112821-tune-tfidf/thresholds.csv</code>, <code>data/labels.jsonl</code>, <code>data/manifest.jsonl</code>.</span>
+    <span>Nguồn số liệu: <code>results/20260915-171321/report.md</code>, <code>results/20260915-171451-github-actions/report.md</code>, <code>results/20260915-145737-panel/panel.json</code>, <code>results/20260915-112821-tune-tfidf/thresholds.csv</code>, <code>data/labels.jsonl</code>, <code>data/manifest.jsonl</code>.</span>
     <span>Báo cáo chi tiết: <code>docs/reports/2026-09-15-tfidf-threshold-and-hybrid.md</code>; quy trình gán mù: <code>docs/labeling-guide.md</code>.</span>
     <span>Repo: <a href="https://github.com/HuyHoangTran05/au2-ci-failure-classifier">HuyHoangTran05/au2-ci-failure-classifier</a> (private)</span>
   </footer>

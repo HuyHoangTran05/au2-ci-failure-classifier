@@ -166,26 +166,27 @@ Dữ liệu: 944 mẫu có nhãn (194 GitHub Actions, 750 LogChunks), toàn bộ
 HuyHoangTran kiểm tra và giữ nguyên). Chia theo (repo, workflow), phân tầng theo (nguồn, loại lỗi): 653 train / 291 test.
 Báo cáo đầy đủ nằm trong `results/`.
 
-**Tập test cố định (291 mẫu)**, khoảng tin cậy 95% bằng bootstrap theo nhóm workflow (`results/20260915-115444/`):
+**Tập test cố định (291 mẫu)**, khoảng tin cậy 95% bằng bootstrap theo nhóm workflow (`results/20260915-171321/`,
+sau khi phân xử 8 mẫu hội đồng LLM tranh cãi):
 
 | Phương pháp | Accuracy [95% CI] | Macro F1 [95% CI] | Abstention (unknown) | Accuracy khi trả lời |
 | --- | --- | --- | --- | --- |
-| Luật từ khóa | 0.34 [0.23, 0.46] | 0.40 [0.22, 0.52] | 0.57 | 0.79 |
-| TF-IDF + logistic regression (ngưỡng 0.2) | 0.57 [0.44, 0.69] | 0.29 [0.22, 0.44] | 0.00 | 0.57 |
-| LLM `nvidia/nemotron-3-super-120b-a12b:free` (prompt v1) | 0.71 [0.59, 0.80] | **0.67** [0.50, 0.76] | 0.08 | 0.77 |
-| Hybrid: LLM, TF-IDF khi LLM trả `unknown` | **0.74** [0.62, 0.83] | **0.67** [0.50, 0.76] | 0.00 | 0.74 |
+| Luật từ khóa | 0.34 [0.22, 0.46] | 0.42 [0.22, 0.52] | 0.57 | 0.79 |
+| TF-IDF + logistic regression (ngưỡng 0.2) | 0.57 [0.44, 0.69] | 0.30 [0.22, 0.43] | 0.00 | 0.57 |
+| LLM `nvidia/nemotron-3-super-120b-a12b:free` (prompt v1) | 0.71 [0.61, 0.81] | **0.69** [0.51, 0.78] | 0.08 | 0.78 |
+| Hybrid: LLM, TF-IDF khi LLM trả `unknown` | **0.75** [0.63, 0.84] | 0.68 [0.50, 0.78] | 0.00 | 0.75 |
 
-**Kiểm định McNemar** (cùng 291 mẫu): LLM hơn TF-IDF (p ≈ 9e-5), TF-IDF hơn luật (p ≈ 2e-10),
+**Kiểm định McNemar** (cùng 291 mẫu): LLM hơn TF-IDF (p ≈ 5e-5), TF-IDF hơn luật (p ≈ 2e-10),
 hybrid hơn LLM (đúng thêm 9 mẫu, không sai thêm mẫu nào, p = 0.004).
 
 **Cross-validation 5 lần theo nhóm** trên toàn bộ 944 mẫu (mean ± sd):
 
 | Phương pháp | Accuracy | Macro F1 | Abstention |
 | --- | --- | --- | --- |
-| Luật từ khóa (lạc quan: luật được sửa trên chính các mẫu train) | 0.42 ± 0.09 | 0.51 ± 0.10 | 0.48 |
-| TF-IDF | 0.62 ± 0.07 | 0.42 ± 0.11 | 0.00 |
-| LLM (chỉ 333 mẫu đã có câu trả lời) | 0.70 ± 0.08 | 0.62 ± 0.09 | 0.08 |
-| Hybrid (cùng 333 mẫu) | 0.73 ± 0.06 | 0.62 ± 0.10 | 0.00 |
+| Luật từ khóa (lạc quan: luật được sửa trên chính các mẫu train) | 0.42 ± 0.11 | 0.52 ± 0.13 | 0.48 |
+| TF-IDF | 0.63 ± 0.04 | 0.41 ± 0.08 | 0.00 |
+| LLM (chỉ 333 mẫu đã có câu trả lời) | 0.71 ± 0.07 | 0.65 ± 0.04 | 0.07 |
+| Hybrid (cùng 333 mẫu) | 0.73 ± 0.05 | 0.65 ± 0.04 | 0.00 |
 
 Cách đọc:
 - Khoảng tin cậy **rộng** (khoảng ±0.1) vì tập test chỉ có 43 nhóm workflow: cần thêm dữ liệu để kết luận chi tiết.
@@ -201,8 +202,8 @@ Cách đọc:
 - LLM: khoảng 1.5k token prompt + 300 token trả lời mỗi mẫu, độ trễ trung vị 4.5 giây, chi phí 0 USD. 8/291 câu trả
   lời không đọc được JSON. Loại yếu nhất là `infrastructure` (F1 0.39), hay nhầm với `test_assertion`.
 - **Kiểm tra nhãn bằng hội đồng 3 LLM** (80 mẫu test, không dùng Claude hay Nemotron): mỗi model đồng ý với nhãn nháp
-  88–92% (kappa 0.82–0.88), Fleiss' kappa giữa 3 model 0.87; 8/80 mẫu bị tranh cãi, chờ người phân xử. Nhãn dễ tái tạo,
-  nhưng chưa chứng minh là đúng. Xem [`docs/reports/2026-09-15-llm-panel.md`](docs/reports/2026-09-15-llm-panel.md).
+  88–92% (kappa 0.82–0.88), Fleiss' kappa giữa 3 model 0.87; 8/80 mẫu bị tranh cãi đã được người phân xử (5 nhãn đổi).
+  Nhãn dễ tái tạo, nhưng chưa chứng minh là đúng; 211 mẫu test còn lại chưa qua hội đồng. Xem [`docs/reports/2026-09-15-llm-panel.md`](docs/reports/2026-09-15-llm-panel.md).
 - ⚠️ Nhãn ban đầu do một LLM (Claude) gán rồi người duyệt giữ nguyên. Duyệt khi đã thấy nhãn nháp dễ bị ảnh hưởng
   theo nhãn đó, nên điểm LLM vẫn có thể hơi cao. Chưa có người thứ hai, nên dùng `label --blind` để tự gán mù lại
   80 mẫu test rồi `agreement` để đo Cohen's kappa (xem `docs/labeling-guide.md`).
