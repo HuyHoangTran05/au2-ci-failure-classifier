@@ -87,6 +87,20 @@ def adjudication_queue(blind: dict[str, dict], drafts: dict[str, str], labels: d
                   and not labels[sid].get("note", "").startswith(ADJUDICATED))
 
 
+MIN_MEDIAN_SECONDS = 15
+
+
+def speed_warning(seconds: list[float]) -> str | None:
+    """Warn when blind labels were given faster than a failed CI log can be read."""
+    if not seconds:
+        return None
+    median = float(np.median(seconds))
+    if median >= MIN_MEDIAN_SECONDS:
+        return None
+    return (f"Warning: median {median:.1f} s per sample (under {MIN_MEDIAN_SECONDS} s). Labels this fast measure haste "
+            "more than label quality; consider a slower second round with a new --labeler name (e.g. <name>-r2).")
+
+
 def kappa(y_a: np.ndarray, y_b: np.ndarray, categories) -> float:
     if len(y_a) == 0:
         return math.nan
@@ -204,6 +218,9 @@ def main(argv: list[str] | None = None) -> None:
     print(f"Summary: {out_dir / 'agreement.json'}")
     if len(ids) < 30:
         print(f"Note: only {len(ids)} blind labels; intervals are wide. Aim for 60-80.")
+    warning = speed_warning(seconds)
+    if warning:
+        print(warning)
 
 
 if __name__ == "__main__":

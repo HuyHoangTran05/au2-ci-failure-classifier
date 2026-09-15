@@ -43,6 +43,12 @@ def test_kappa_and_agreement_interval():
     assert result["kappa_low"] <= result["kappa"] <= result["kappa_high"]
 
 
+def test_speed_warning_only_for_hasty_rounds():
+    assert agreement.speed_warning([]) is None
+    assert agreement.speed_warning([20.0, 40.0, 60.0]) is None
+    assert "median 6.0 s" in agreement.speed_warning([3.0, 6.0, 9.0])
+
+
 def test_method_bias_counts_matches_against_each_label_set():
     table = agreement.method_bias({"llm": ["a", "b", "a"]}, draft=["a", "b", "b"], blind=["a", "a", "b"])
     row = table.iloc[0]
