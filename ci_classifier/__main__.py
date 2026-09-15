@@ -12,6 +12,7 @@ COMMANDS = {
     "excerpt": "cut raw logs down to the lines that explain the failure",
     "excerpt-eval": "measure how well excerpts keep LogChunks' marked failure chunks",
     "label": "label excerpts by hand",
+    "agreement": "compare blind relabels with draft labels (Cohen's kappa, label bias per classifier)",
     "split": "split labelled samples into train and test sets",
     "rules": "inspect keyword-rule predictions on the train set",
     "tune-tfidf": "choose the TF-IDF abstain threshold by cross-validation on the train set",

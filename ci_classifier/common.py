@@ -16,6 +16,7 @@ MANIFEST = DATA / "manifest.jsonl"
 LABELS = DATA / "labels.jsonl"
 SPLIT = DATA / "split.json"
 TRIAGE_LOG = DATA / "triage_sessions.jsonl"
+BLIND_LABELS = DATA / "blind_labels.jsonl"
 RESULTS = ROOT / "results"
 
 UNKNOWN = "unknown"

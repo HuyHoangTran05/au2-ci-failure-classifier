@@ -6,20 +6,27 @@ Usage:
     python -m ci_classifier label --relabel dotnet__aspire__34815567672
     python -m ci_classifier label --review                 # check draft labels written by Claude
     python -m ci_classifier label --accept-drafts <name>   # drafts were checked elsewhere; keep them as human labels
+    python -m ci_classifier label --blind --labeler <name> --count 80   # relabel test samples without seeing labels
+    python -m ci_classifier label --adjudicate --labeler <name>         # settle blind vs draft disagreements
 
 For LogChunks samples, a label is also applied to unlabelled samples with an identical chunk
 (recorded in the note); pass --no-propagate to label each one yourself.
 
 Predictions are deliberately not shown, so the labels stay independent of the classifiers.
+Blind labels go to data/blind_labels.jsonl and never change data/labels.jsonl; `python -m ci_classifier agreement`
+compares them with the drafts. Only --adjudicate writes a final label back to labels.jsonl.
 """
 
 from __future__ import annotations
 
 import argparse
 import random
+import time
 import webbrowser
 
-from .common import DRAFT_LABELER, append_label, excerpt_path, load_config, read_excerpt, read_labels, read_manifest
+from . import agreement
+from .common import (DRAFT_LABELER, append_label, excerpt_path, load_config, read_excerpt, read_labels, read_manifest,
+                     read_split)
 
 GITHUB_ACTIONS = "github-actions"
 
@@ -79,6 +86,56 @@ def ask(sample_id: str, record: dict, categories: list[str], position: str,
         print("Không hợp lệ, nhập lại.")
 
 
+def run_blind(queue: list[str], manifest: dict[str, dict], categories: list[str], labeler: str) -> int:
+    """Ask for each sample without showing any existing label; skips are stored as unclear (label null)."""
+    done = 0
+    for index, sample_id in enumerate(queue, start=1):
+        started = time.monotonic()
+        result = ask(sample_id, manifest[sample_id], categories, f"[mù {index}/{len(queue)}]")
+        if result is None:
+            break
+        label, note = result
+        agreement.append_blind(sample_id, label or None, labeler, time.monotonic() - started,
+                               note if label else "skipped: unclear")
+        done += 1
+    return done
+
+
+def adjudication_choice(sample_id: str, candidates: tuple[str, str], categories: list[str]) -> str | None:
+    """Show two candidate labels in a per-sample random order, without saying which is the draft."""
+    first, second = sorted(candidates)
+    if random.Random(sample_id).random() < 0.5:
+        first, second = second, first
+    print(f"Hai nhãn đang bất đồng (thứ tự ngẫu nhiên, không cho biết nhãn nào của ai): {first}  |  {second}")
+    menu = "   ".join(f"[{i}] {name}" for i, name in enumerate(categories, start=1))
+    while True:
+        answer = input(f"{menu}\n[s] bỏ qua   [q] thoát > ").strip().lower()
+        if answer == "q":
+            return None
+        if answer == "s":
+            return ""
+        if answer.isdigit() and 1 <= int(answer) <= len(categories):
+            return categories[int(answer) - 1]
+        print("Không hợp lệ, nhập lại.")
+
+
+def run_adjudication(queue: list[str], manifest: dict[str, dict], categories: list[str], labeler: str,
+                     drafts: dict[str, str], blind: dict[str, dict]) -> int:
+    settled = 0
+    for index, sample_id in enumerate(queue, start=1):
+        record = manifest[sample_id]
+        show(sample_id, record, f"[phân xử {index}/{len(queue)}]", full_excerpt=True)
+        draft, relabel = drafts[sample_id], blind[sample_id]["label"]
+        chosen = adjudication_choice(sample_id, (draft, relabel), categories)
+        if chosen is None:
+            break
+        if not chosen:
+            continue
+        append_label(sample_id, chosen, f"{agreement.ADJUDICATED} by {labeler}: draft={draft}, blind={relabel}")
+        settled += 1
+    return settled
+
+
 def accept_drafts(labels: dict[str, dict], wanted, reviewer: str) -> int:
     """Append a human record keeping each draft label; the note keeps it distinct from one-by-one review."""
     accepted = 0
@@ -100,7 +157,15 @@ def main(argv: list[str] | None = None) -> None:
                         help=f"review draft labels ({DRAFT_LABELER}): Enter keeps, a number changes")
     parser.add_argument("--accept-drafts", metavar="REVIEWER",
                         help="record that REVIEWER checked the draft labels outside this tool and keeps them all")
+    parser.add_argument("--blind", action="store_true",
+                        help="relabel test samples without seeing their labels (stored in data/blind_labels.jsonl)")
+    parser.add_argument("--adjudicate", action="store_true",
+                        help="choose the final label where a blind label disagrees with the draft")
+    parser.add_argument("--labeler", help="your name (required with --blind and --adjudicate)")
+    parser.add_argument("--count", type=int, default=80, help="size of the blind sample (default 80)")
     args = parser.parse_args(argv)
+    if (args.blind or args.adjudicate) and not args.labeler:
+        parser.error("--blind and --adjudicate need --labeler <name>")
 
     config = load_config()
     categories = config["categories"]
@@ -113,6 +178,27 @@ def main(argv: list[str] | None = None) -> None:
     if args.accept_drafts:
         accepted = accept_drafts(labels, wanted, args.accept_drafts)
         print(f"Recorded {accepted} draft labels as accepted by {args.accept_drafts}.")
+        return
+
+    if args.blind:
+        split = read_split()
+        if split is None:
+            parser.error("no data/split.json yet; run `python -m ci_classifier split` first")
+        test_ids = [sid for sid in split["test"] if sid in labels and wanted(sid)]
+        done = set(agreement.read_blind(args.labeler))
+        queue = agreement.blind_queue(test_ids, manifest, done, args.count, config["split"]["seed"])
+        print(f"Blind relabel: {len(queue)} of {args.count} samples left for {args.labeler}. Existing labels, notes and "
+              "predictions are hidden. Guide: docs/labeling-guide.md. [s] = unclear, [q] = stop (resume later).")
+        stored = run_blind(queue, manifest, categories, args.labeler)
+        print(f"Saved {stored} blind labels. Compare: python -m ci_classifier agreement --labeler {args.labeler}")
+        return
+
+    if args.adjudicate:
+        drafts, blind = agreement.original_drafts(), agreement.read_blind(args.labeler)
+        queue = [sid for sid in agreement.adjudication_queue(blind, drafts, labels) if wanted(sid)]
+        print(f"{len(queue)} disagreements to settle. The chosen label becomes the label used by evaluate.")
+        settled = run_adjudication(queue, manifest, categories, args.labeler, drafts, blind)
+        print(f"Settled {settled}. Re-run `python -m ci_classifier evaluate --cv 5` to score against the new labels.")
         return
 
     if args.relabel:
