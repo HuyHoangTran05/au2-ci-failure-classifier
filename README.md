@@ -130,6 +130,7 @@ Báo cáo `evaluate` cảnh báo nếu tập test còn nhãn nháp. Nhãn nháp 
 với phương pháp LLM, kết quả có thể bị thiên vị: hãy duyệt hết nhãn của tập test trước khi báo cáo.
 
 Tóm tắt pain point và câu hỏi cho mentor: [`docs/pain-points.html`](docs/pain-points.html).
+Báo cáo duyệt nhãn và kiểm định thống kê: [`docs/reports/2026-09-15-label-review-and-statistics.md`](docs/reports/2026-09-15-label-review-and-statistics.md).
 
 ## Kết quả hiện tại (15/09/2026)
 
