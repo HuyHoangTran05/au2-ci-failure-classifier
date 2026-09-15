@@ -64,6 +64,16 @@ Quy tắc:
 Cách đọc Cohen's kappa: dưới 0.6 là yếu, 0.6–0.8 là khá, trên 0.8 là tốt. Nếu phương pháp LLM khớp với nhãn nháp nhiều
 hơn hẳn so với nhãn mù (p nhỏ trong bảng của `agreement`), điểm LLM trước đây đã được nhãn nháp nâng lên.
 
+**Tốc độ:** một log CI không thể đọc trong vài giây. Nên dành 20–60 giây mỗi mẫu (log GitHub Actions lâu hơn).
+`agreement` cảnh báo nếu trung vị dưới 15 giây. Khi đó kết quả đo độ vội nhiều hơn chất lượng nhãn.
+
+**Làm lại một vòng:** dùng tên mới, ví dụ `--labeler HuyHoangTran-r2`. Công cụ đưa ra cùng 80 mẫu, và vòng cũ vẫn được
+giữ để báo cáo. Trước vòng mới, **không mở** `results/*-agreement/disagreements.csv`, vì file đó chứa nhãn nháp.
+
+Vòng 1 (15/09/2026, `HuyHoangTran`): 80 mẫu trong 8.8 phút, trung vị 6 giây mỗi mẫu, kappa 0.25. Trong 41 mẫu bất đồng,
+18 mẫu có dòng log ghi rõ loại của nhãn nháp (ví dụ `AssertionError`, `1 failing`) nhưng không có dấu hiệu nào của nhãn
+mù; chỉ 2 mẫu ngược lại. Vì vậy vòng này được ghi nhận là **gán quá nhanh**, không dùng để kết luận về chất lượng nhãn nháp.
+
 Hạn chế: người gán mù cũng là người đã duyệt nhãn nháp, nên vẫn có thể nhớ một phần. Kết quả này là cận trên của mức
 đồng thuận thật; ghi rõ điều đó khi báo cáo.
 

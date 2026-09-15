@@ -1,0 +1,80 @@
+{"sample_id": "logchunks__SwiftyJSON__SwiftyJSON__431826490", "label": "compilation", "labeler": "HuyHoangTran", "note": "", "seconds": 43.8, "protocol": "blind-v1", "at": "2026-09-15T05:12:16+00:00"}
+{"sample_id": "logchunks__BurntSushi__ripgrep__524440676", "label": "compilation", "labeler": "HuyHoangTran", "note": "", "seconds": 17.0, "protocol": "blind-v1", "at": "2026-09-15T05:12:33+00:00"}
+{"sample_id": "logchunks__mhinz__vim-galore__374779422", "label": "other", "labeler": "HuyHoangTran", "note": "", "seconds": 16.3, "protocol": "blind-v1", "at": "2026-09-15T05:12:50+00:00"}
+{"sample_id": "grafana__grafana__33230254822", "label": null, "labeler": "HuyHoangTran", "note": "skipped: unclear", "seconds": 10.9, "protocol": "blind-v1", "at": "2026-09-15T05:13:01+00:00"}
+{"sample_id": "logchunks__technomancy__leiningen__243016828", "label": "compilation", "labeler": "HuyHoangTran", "note": "", "seconds": 11.0, "protocol": "blind-v1", "at": "2026-09-15T05:13:12+00:00"}
+{"sample_id": "python__cpython__34776122960", "label": "other", "labeler": "HuyHoangTran", "note": "", "seconds": 8.3, "protocol": "blind-v1", "at": "2026-09-15T05:13:20+00:00"}
+{"sample_id": "microsoft__vscode__31827769794", "label": null, "labeler": "HuyHoangTran", "note": "skipped: unclear", "seconds": 8.7, "protocol": "blind-v1", "at": "2026-09-15T05:13:29+00:00"}
+{"sample_id": "logchunks__processone__ejabberd__555702367", "label": "authentication", "labeler": "HuyHoangTran", "note": "", "seconds": 8.5, "protocol": "blind-v1", "at": "2026-09-15T05:13:37+00:00"}
+{"sample_id": "python__cpython__34783075674", "label": null, "labeler": "HuyHoangTran", "note": "skipped: unclear", "seconds": 7.2, "protocol": "blind-v1", "at": "2026-09-15T05:13:44+00:00"}
+{"sample_id": "dotnet__aspire__34786559072", "label": null, "labeler": "HuyHoangTran", "note": "skipped: unclear", "seconds": 7.2, "protocol": "blind-v1", "at": "2026-09-15T05:13:52+00:00"}
+{"sample_id": "logchunks__scala__scala__566675131", "label": "compilation", "labeler": "HuyHoangTran", "note": "", "seconds": 7.5, "protocol": "blind-v1", "at": "2026-09-15T05:13:59+00:00"}
+{"sample_id": "logchunks__postcss__autoprefixer__547185725", "label": "infrastructure", "labeler": "HuyHoangTran", "note": "", "seconds": 10.2, "protocol": "blind-v1", "at": "2026-09-15T05:14:09+00:00"}
+{"sample_id": "logchunks__jashkenas__coffeescript__393178870", "label": "other", "labeler": "HuyHoangTran", "note": "", "seconds": 28.5, "protocol": "blind-v1", "at": "2026-09-15T05:14:38+00:00"}
+{"sample_id": "python__cpython__34089004553", "label": "other", "labeler": "HuyHoangTran", "note": "", "seconds": 9.5, "protocol": "blind-v1", "at": "2026-09-15T05:14:47+00:00"}
+{"sample_id": "logchunks__postcss__autoprefixer__474577649", "label": "compilation", "labeler": "HuyHoangTran", "note": "", "seconds": 7.3, "protocol": "blind-v1", "at": "2026-09-15T05:14:55+00:00"}
+{"sample_id": "logchunks__technomancy__leiningen__239339113", "label": "dependency", "labeler": "HuyHoangTran", "note": "", "seconds": 6.1, "protocol": "blind-v1", "at": "2026-09-15T05:15:01+00:00"}
+{"sample_id": "logchunks__Microsoft__TypeScript__566574811", "label": "test_assertion", "labeler": "HuyHoangTran", "note": "", "seconds": 5.3, "protocol": "blind-v1", "at": "2026-09-15T05:15:06+00:00"}
+{"sample_id": "logchunks__scala__scala__567060744", "label": "test_assertion", "labeler": "HuyHoangTran", "note": "", "seconds": 5.2, "protocol": "blind-v1", "at": "2026-09-15T05:15:11+00:00"}
+{"sample_id": "logchunks__bcit-ci__CodeIgniter__507199842", "label": "test_assertion", "labeler": "HuyHoangTran", "note": "", "seconds": 6.6, "protocol": "blind-v1", "at": "2026-09-15T05:15:18+00:00"}
+{"sample_id": "logchunks__FreeCodeCamp__freecodecamp__566312689", "label": "test_assertion", "labeler": "HuyHoangTran", "note": "", "seconds": 4.7, "protocol": "blind-v1", "at": "2026-09-15T05:15:22+00:00"}
+{"sample_id": "logchunks__soulmachine__leetcode__172062089", "label": "compilation", "labeler": "HuyHoangTran", "note": "", "seconds": 4.5, "protocol": "blind-v1", "at": "2026-09-15T05:15:27+00:00"}
+{"sample_id": "logchunks__jgm__pandoc__480326509", "label": "other", "labeler": "HuyHoangTran", "note": "", "seconds": 5.2, "protocol": "blind-v1", "at": "2026-09-15T05:15:32+00:00"}
+{"sample_id": "logchunks__bitcoin__bitcoin__567200607", "label": "compilation", "labeler": "HuyHoangTran", "note": "", "seconds": 7.1, "protocol": "blind-v1", "at": "2026-09-15T05:15:39+00:00"}
+{"sample_id": "logchunks__SwiftyJSON__SwiftyJSON__512286699", "label": "dependency", "labeler": "HuyHoangTran", "note": "", "seconds": 6.2, "protocol": "blind-v1", "at": "2026-09-15T05:15:46+00:00"}
+{"sample_id": "logchunks__vim__vim__557413766", "label": "infrastructure", "labeler": "HuyHoangTran", "note": "", "seconds": 6.3, "protocol": "blind-v1", "at": "2026-09-15T05:15:52+00:00"}
+{"sample_id": "logchunks__ReactiveCocoa__ReactiveCocoa__522129648", "label": "compilation", "labeler": "HuyHoangTran", "note": "", "seconds": 7.4, "protocol": "blind-v1", "at": "2026-09-15T05:15:59+00:00"}
+{"sample_id": "logchunks__processone__ejabberd__556990927", "label": "infrastructure", "labeler": "HuyHoangTran", "note": "", "seconds": 4.5, "protocol": "blind-v1", "at": "2026-09-15T05:16:04+00:00"}
+{"sample_id": "logchunks__Microsoft__TypeScript__566234931", "label": "test_assertion", "labeler": "HuyHoangTran", "note": "", "seconds": 5.8, "protocol": "blind-v1", "at": "2026-09-15T05:16:10+00:00"}
+{"sample_id": "logchunks__square__retrofit__456148330", "label": "dependency", "labeler": "HuyHoangTran", "note": "", "seconds": 8.8, "protocol": "blind-v1", "at": "2026-09-15T05:16:18+00:00"}
+{"sample_id": "logchunks__bcit-ci__CodeIgniter__496514022", "label": "other", "labeler": "HuyHoangTran", "note": "", "seconds": 9.2, "protocol": "blind-v1", "at": "2026-09-15T05:16:28+00:00"}
+{"sample_id": "logchunks__postcss__autoprefixer__502902139", "label": "compilation", "labeler": "HuyHoangTran", "note": "", "seconds": 4.7, "protocol": "blind-v1", "at": "2026-09-15T05:16:32+00:00"}
+{"sample_id": "logchunks__dkhamsing__open-source-ios-apps__562459124", "label": "other", "labeler": "HuyHoangTran", "note": "", "seconds": 6.2, "protocol": "blind-v1", "at": "2026-09-15T05:16:39+00:00"}
+{"sample_id": "logchunks__jwilm__alacritty__564272806", "label": "dependency", "labeler": "HuyHoangTran", "note": "", "seconds": 7.2, "protocol": "blind-v1", "at": "2026-09-15T05:16:46+00:00"}
+{"sample_id": "logchunks__jgm__pandoc__483247329", "label": "dependency", "labeler": "HuyHoangTran", "note": "", "seconds": 5.3, "protocol": "blind-v1", "at": "2026-09-15T05:16:51+00:00"}
+{"sample_id": "logchunks__ReactiveCocoa__ReactiveCocoa__525349639", "label": "dependency", "labeler": "HuyHoangTran", "note": "", "seconds": 4.8, "protocol": "blind-v1", "at": "2026-09-15T05:16:56+00:00"}
+{"sample_id": "logchunks__jashkenas__coffeescript__461415014", "label": "compilation", "labeler": "HuyHoangTran", "note": "", "seconds": 7.6, "protocol": "blind-v1", "at": "2026-09-15T05:17:03+00:00"}
+{"sample_id": "python__cpython__34788896959", "label": "other", "labeler": "HuyHoangTran", "note": "", "seconds": 6.1, "protocol": "blind-v1", "at": "2026-09-15T05:17:10+00:00"}
+{"sample_id": "dotnet__aspire__34787419768", "label": "dependency", "labeler": "HuyHoangTran", "note": "", "seconds": 5.3, "protocol": "blind-v1", "at": "2026-09-15T05:17:15+00:00"}
+{"sample_id": "logchunks__FreeCodeCamp__freecodecamp__566340191", "label": "compilation", "labeler": "HuyHoangTran", "note": "", "seconds": 6.0, "protocol": "blind-v1", "at": "2026-09-15T05:17:21+00:00"}
+{"sample_id": "logchunks__google__material-design-icons__96448414", "label": "compilation", "labeler": "HuyHoangTran", "note": "", "seconds": 5.7, "protocol": "blind-v1", "at": "2026-09-15T05:17:27+00:00"}
+{"sample_id": "logchunks__sjdy521__Mojo-Webqq__341246416", "label": "other", "labeler": "HuyHoangTran", "note": "", "seconds": 6.0, "protocol": "blind-v1", "at": "2026-09-15T05:17:32+00:00"}
+{"sample_id": "logchunks__jwilm__alacritty__564527447", "label": "compilation", "labeler": "HuyHoangTran", "note": "", "seconds": 6.8, "protocol": "blind-v1", "at": "2026-09-15T05:17:39+00:00"}
+{"sample_id": "logchunks__mhinz__vim-galore__403259414", "label": "other", "labeler": "HuyHoangTran", "note": "", "seconds": 3.0, "protocol": "blind-v1", "at": "2026-09-15T05:17:42+00:00"}
+{"sample_id": "microsoft__TypeScript__34290086503", "label": "authentication", "labeler": "HuyHoangTran", "note": "", "seconds": 11.1, "protocol": "blind-v1", "at": "2026-09-15T05:17:53+00:00"}
+{"sample_id": "logchunks__ReactiveX__RxJava__561008032", "label": "compilation", "labeler": "HuyHoangTran", "note": "", "seconds": 2.4, "protocol": "blind-v1", "at": "2026-09-15T05:17:56+00:00"}
+{"sample_id": "python__cpython__34098372849", "label": "compilation", "labeler": "HuyHoangTran", "note": "", "seconds": 7.3, "protocol": "blind-v1", "at": "2026-09-15T05:18:03+00:00"}
+{"sample_id": "python__cpython__34756422579", "label": null, "labeler": "HuyHoangTran", "note": "skipped: unclear", "seconds": 6.3, "protocol": "blind-v1", "at": "2026-09-15T05:18:09+00:00"}
+{"sample_id": "logchunks__mhinz__vim-galore__430784580", "label": "compilation", "labeler": "HuyHoangTran", "note": "", "seconds": 9.5, "protocol": "blind-v1", "at": "2026-09-15T05:18:19+00:00"}
+{"sample_id": "logchunks__postcss__autoprefixer__468714887", "label": "dependency", "labeler": "HuyHoangTran", "note": "", "seconds": 7.9, "protocol": "blind-v1", "at": "2026-09-15T05:18:27+00:00"}
+{"sample_id": "logchunks__powershell__PowerShell__535987243", "label": "compilation", "labeler": "HuyHoangTran", "note": "", "seconds": 6.6, "protocol": "blind-v1", "at": "2026-09-15T05:18:33+00:00"}
+{"sample_id": "microsoft__vscode__31971380461", "label": "other", "labeler": "HuyHoangTran", "note": "", "seconds": 8.7, "protocol": "blind-v1", "at": "2026-09-15T05:18:42+00:00"}
+{"sample_id": "logchunks__postcss__autoprefixer__460085832", "label": "compilation", "labeler": "HuyHoangTran", "note": "", "seconds": 3.6, "protocol": "blind-v1", "at": "2026-09-15T05:18:46+00:00"}
+{"sample_id": "logchunks__sjdy521__Mojo-Webqq__367594706", "label": "infrastructure", "labeler": "HuyHoangTran", "note": "", "seconds": 4.7, "protocol": "blind-v1", "at": "2026-09-15T05:18:50+00:00"}
+{"sample_id": "microsoft__vscode__34697884669", "label": "other", "labeler": "HuyHoangTran", "note": "", "seconds": 4.1, "protocol": "blind-v1", "at": "2026-09-15T05:18:55+00:00"}
+{"sample_id": "logchunks__scala__scala__566866822", "label": "test_assertion", "labeler": "HuyHoangTran", "note": "", "seconds": 7.6, "protocol": "blind-v1", "at": "2026-09-15T05:19:02+00:00"}
+{"sample_id": "logchunks__bcit-ci__CodeIgniter__523684642", "label": "test_assertion", "labeler": "HuyHoangTran", "note": "", "seconds": 6.0, "protocol": "blind-v1", "at": "2026-09-15T05:19:08+00:00"}
+{"sample_id": "microsoft__vscode__31854040716", "label": "other", "labeler": "HuyHoangTran", "note": "", "seconds": 5.0, "protocol": "blind-v1", "at": "2026-09-15T05:19:13+00:00"}
+{"sample_id": "logchunks__Microsoft__TypeScript__566591714", "label": "test_assertion", "labeler": "HuyHoangTran", "note": "", "seconds": 3.4, "protocol": "blind-v1", "at": "2026-09-15T05:19:16+00:00"}
+{"sample_id": "logchunks__vim__vim__555378073", "label": "test_assertion", "labeler": "HuyHoangTran", "note": "", "seconds": 2.3, "protocol": "blind-v1", "at": "2026-09-15T05:19:19+00:00"}
+{"sample_id": "grafana__grafana__33230254939", "label": "other", "labeler": "HuyHoangTran", "note": "", "seconds": 4.4, "protocol": "blind-v1", "at": "2026-09-15T05:19:23+00:00"}
+{"sample_id": "logchunks__vim__vim__557005417", "label": "test_assertion", "labeler": "HuyHoangTran", "note": "", "seconds": 5.9, "protocol": "blind-v1", "at": "2026-09-15T05:19:29+00:00"}
+{"sample_id": "grafana__grafana__33189617225", "label": "other", "labeler": "HuyHoangTran", "note": "", "seconds": 3.6, "protocol": "blind-v1", "at": "2026-09-15T05:19:33+00:00"}
+{"sample_id": "python__cpython__34778527572", "label": "other", "labeler": "HuyHoangTran", "note": "", "seconds": 6.6, "protocol": "blind-v1", "at": "2026-09-15T05:19:39+00:00"}
+{"sample_id": "python__cpython__33789566126", "label": null, "labeler": "HuyHoangTran", "note": "skipped: unclear", "seconds": 1.9, "protocol": "blind-v1", "at": "2026-09-15T05:19:41+00:00"}
+{"sample_id": "logchunks__vim__vim__557328684", "label": "test_assertion", "labeler": "HuyHoangTran", "note": "", "seconds": 3.6, "protocol": "blind-v1", "at": "2026-09-15T05:19:45+00:00"}
+{"sample_id": "logchunks__scala__scala__566726054", "label": "test_assertion", "labeler": "HuyHoangTran", "note": "", "seconds": 2.7, "protocol": "blind-v1", "at": "2026-09-15T05:19:48+00:00"}
+{"sample_id": "grafana__grafana__33189616835", "label": null, "labeler": "HuyHoangTran", "note": "skipped: unclear", "seconds": 3.1, "protocol": "blind-v1", "at": "2026-09-15T05:19:51+00:00"}
+{"sample_id": "logchunks__Microsoft__TypeScript__567134594", "label": "test_assertion", "labeler": "HuyHoangTran", "note": "", "seconds": 2.7, "protocol": "blind-v1", "at": "2026-09-15T05:19:53+00:00"}
+{"sample_id": "logchunks__square__retrofit__553410971", "label": "compilation", "labeler": "HuyHoangTran", "note": "", "seconds": 8.1, "protocol": "blind-v1", "at": "2026-09-15T05:20:01+00:00"}
+{"sample_id": "microsoft__vscode__31959446031", "label": "other", "labeler": "HuyHoangTran", "note": "", "seconds": 3.4, "protocol": "blind-v1", "at": "2026-09-15T05:20:05+00:00"}
+{"sample_id": "logchunks__powershell__PowerShell__536509309", "label": "compilation", "labeler": "HuyHoangTran", "note": "", "seconds": 4.3, "protocol": "blind-v1", "at": "2026-09-15T05:20:09+00:00"}
+{"sample_id": "logchunks__dkhamsing__open-source-ios-apps__562461458", "label": "other", "labeler": "HuyHoangTran", "note": "", "seconds": 7.6, "protocol": "blind-v1", "at": "2026-09-15T05:20:17+00:00"}
+{"sample_id": "logchunks__jwilm__alacritty__563821312", "label": "dependency", "labeler": "HuyHoangTran", "note": "", "seconds": 4.8, "protocol": "blind-v1", "at": "2026-09-15T05:20:21+00:00"}
+{"sample_id": "logchunks__mhinz__vim-galore__443978045", "label": null, "labeler": "HuyHoangTran", "note": "skipped: unclear", "seconds": 4.2, "protocol": "blind-v1", "at": "2026-09-15T05:20:26+00:00"}
+{"sample_id": "logchunks__bitcoin__bitcoin__567144565", "label": null, "labeler": "HuyHoangTran", "note": "skipped: unclear", "seconds": 5.0, "protocol": "blind-v1", "at": "2026-09-15T05:20:31+00:00"}
+{"sample_id": "logchunks__ReactiveCocoa__ReactiveCocoa__530618863", "label": null, "labeler": "HuyHoangTran", "note": "skipped: unclear", "seconds": 8.4, "protocol": "blind-v1", "at": "2026-09-15T05:20:39+00:00"}
+{"sample_id": "logchunks__jwilm__alacritty__579346432", "label": "compilation", "labeler": "HuyHoangTran", "note": "", "seconds": 9.3, "protocol": "blind-v1", "at": "2026-09-15T05:20:48+00:00"}
+{"sample_id": "grafana__grafana__33230254850", "label": "compilation", "labeler": "HuyHoangTran", "note": "", "seconds": 7.3, "protocol": "blind-v1", "at": "2026-09-15T05:20:56+00:00"}
+{"sample_id": "logchunks__vim__vim__557480996", "label": "test_assertion", "labeler": "HuyHoangTran", "note": "", "seconds": 2.3, "protocol": "blind-v1", "at": "2026-09-15T05:20:58+00:00"}
+{"sample_id": "microsoft__vscode__31958099696", "label": "test_assertion", "labeler": "HuyHoangTran", "note": "", "seconds": 3.6, "protocol": "blind-v1", "at": "2026-09-15T05:21:02+00:00"}

@@ -1,0 +1,128 @@
+{
+  "created_at": "2026-09-15T05:21:37+00:00",
+  "labeler": "HuyHoangTran",
+  "protocol": "blind-v1",
+  "blind_labelled": 70,
+  "blind_skipped": 10,
+  "in_test_set": 70,
+  "median_seconds_per_sample": 6.1,
+  "overall": {
+    "n": 70,
+    "agreement": 0.4142857142857143,
+    "agreement_low": 0.2741880247459125,
+    "agreement_high": 0.5443325661680092,
+    "kappa": 0.2510438413361169,
+    "kappa_low": 0.10415425923728464,
+    "kappa_high": 0.3712264342792589
+  },
+  "by_source": [
+    {
+      "source": "github-actions",
+      "n": 15,
+      "agreement": 0.26666666666666666,
+      "agreement_low": 0.07142857142857142,
+      "agreement_high": 0.4444444444444444,
+      "kappa": -0.06451612903225801,
+      "kappa_low": -0.23076923076923084,
+      "kappa_high": 0.06752181393634
+    },
+    {
+      "source": "logchunks",
+      "n": 55,
+      "agreement": 0.45454545454545453,
+      "agreement_low": 0.3064516129032258,
+      "agreement_high": 0.6078431372549019,
+      "kappa": 0.30613961312026905,
+      "kappa_low": 0.15307987026213657,
+      "kappa_high": 0.46129243115600094
+    }
+  ],
+  "confusion_draft_rows_blind_columns": {
+    "compilation": {
+      "compilation": 2,
+      "test_assertion": 0,
+      "dependency": 3,
+      "authentication": 0,
+      "infrastructure": 0,
+      "other": 1
+    },
+    "test_assertion": {
+      "compilation": 11,
+      "test_assertion": 14,
+      "dependency": 0,
+      "authentication": 0,
+      "infrastructure": 2,
+      "other": 7
+    },
+    "dependency": {
+      "compilation": 3,
+      "test_assertion": 0,
+      "dependency": 3,
+      "authentication": 0,
+      "infrastructure": 0,
+      "other": 0
+    },
+    "authentication": {
+      "compilation": 0,
+      "test_assertion": 0,
+      "dependency": 0,
+      "authentication": 1,
+      "infrastructure": 0,
+      "other": 1
+    },
+    "infrastructure": {
+      "compilation": 0,
+      "test_assertion": 0,
+      "dependency": 0,
+      "authentication": 0,
+      "infrastructure": 1,
+      "other": 1
+    },
+    "other": {
+      "compilation": 6,
+      "test_assertion": 1,
+      "dependency": 3,
+      "authentication": 1,
+      "infrastructure": 1,
+      "other": 8
+    }
+  },
+  "method_bias": [
+    {
+      "method": "rules",
+      "samples": 70,
+      "accuracy_vs_draft": 0.38571428571428573,
+      "accuracy_vs_blind": 0.14285714285714285,
+      "only_draft_match": 18,
+      "only_blind_match": 1,
+      "p_value": 7.62939453125e-05
+    },
+    {
+      "method": "tfidf",
+      "samples": 70,
+      "accuracy_vs_draft": 0.6142857142857143,
+      "accuracy_vs_blind": 0.3,
+      "only_draft_match": 25,
+      "only_blind_match": 3,
+      "p_value": 2.744048833847046e-05
+    },
+    {
+      "method": "llm",
+      "samples": 70,
+      "accuracy_vs_draft": 0.7428571428571429,
+      "accuracy_vs_blind": 0.38571428571428573,
+      "only_draft_match": 29,
+      "only_blind_match": 4,
+      "p_value": 1.0928604751825333e-05
+    },
+    {
+      "method": "hybrid",
+      "samples": 70,
+      "accuracy_vs_draft": 0.7857142857142857,
+      "accuracy_vs_blind": 0.4,
+      "only_draft_match": 32,
+      "only_blind_match": 5,
+      "p_value": 7.427530363202095e-06
+    }
+  ]
+}
