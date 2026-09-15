@@ -96,7 +96,8 @@ models = [
     "cohere/north-mini-code:free",
     "dots-studio/dots-3-note-preview:free",
 ]
-sample_count = 80
+sample_count = 291          # cả tập test; 80 mẫu đầu vẫn là mẫu của lượt gán mù (cùng thứ tự), mẫu trùng đoạn lỗi LogChunks bị bỏ
+max_consecutive_errors = 5  # panel-run dừng khi gọi lỗi liên tiếp (mất mạng); chạy lại lệnh để tiếp tục
 max_tokens = 2048           # model có bước suy luận cần chỗ trước khi trả JSON
 retry_max_tokens = 6144     # panel-run --retry-unparseable: 15/240 câu trả lời đầu hết 2048 token trước khi viết JSON
 requests_per_minute = 15

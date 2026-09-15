@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import tomllib
 from datetime import datetime, timezone
 from pathlib import Path
@@ -79,15 +80,66 @@ def read_excerpt(sample_id: str) -> str:
 
 
 def read_jsonl(path: Path) -> list[dict]:
+    """Records of a JSONL file. A last line cut off mid-write (no newline, not valid JSON) is skipped with a warning;
+    an invalid line anywhere else still raises, since that is real corruption."""
     if not path.exists():
         return []
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    text = path.read_text(encoding="utf-8")
+    lines = text.splitlines()
+    records = []
+    for index, line in enumerate(lines):
+        if not line.strip():
+            continue
+        try:
+            records.append(json.loads(line))
+        except json.JSONDecodeError:
+            if index == len(lines) - 1 and not text.endswith("\n"):
+                print(f"Warning: ignoring an incomplete last line in {path.name} (interrupted write)", file=sys.stderr)
+                continue
+            raise
+    return records
+
+
+def repair_partial_tail(path: Path) -> int:
+    """Drop bytes after the last newline: a record without its newline was never completely written.
+
+    Returns the number of bytes removed. Called before appending, so a new record never glues onto a broken one.
+    """
+    if not path.exists():
+        return 0
+    with path.open("rb+") as f:
+        size = f.seek(0, os.SEEK_END)
+        if size == 0:
+            return 0
+        f.seek(-1, os.SEEK_END)
+        if f.read(1) == b"\n":
+            return 0
+        # Scan back in blocks for the last complete line.
+        position, block = size, 1 << 16
+        while position > 0:
+            start = max(0, position - block)
+            f.seek(start)
+            chunk = f.read(position - start)
+            cut = chunk.rfind(b"\n")
+            if cut != -1:
+                keep = start + cut + 1
+                break
+            position = start
+        else:
+            keep = 0
+        f.truncate(keep)
+    print(f"Warning: removed an incomplete last record ({size - keep} bytes) from {path.name}", file=sys.stderr)
+    return size - keep
 
 
 def append_jsonl(path: Path, record: dict) -> None:
+    """Append one record and force it to disk, so a crash or power cut loses at most the record being written."""
     path.parent.mkdir(parents=True, exist_ok=True)
+    repair_partial_tail(path)
     with path.open("a", encoding="utf-8") as f:
         f.write(json.dumps(record, ensure_ascii=False) + "\n")
+        f.flush()
+        os.fsync(f.fileno())
 
 
 def read_manifest() -> dict[str, dict]:

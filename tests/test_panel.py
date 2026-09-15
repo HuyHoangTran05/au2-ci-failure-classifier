@@ -79,6 +79,39 @@ def test_run_stores_answers_resumes_and_hides_labels(tmp_path, monkeypatch, caps
     assert len(calls) == 4
 
 
+def test_run_stops_after_consecutive_errors_and_resumes(tmp_path, monkeypatch, capsys):
+    config = {"categories": ["other"], "split": {"seed": 1}, "llm": {"max_excerpt_chars": 1000},
+              "panel": {"models": MODELS[:1], "sample_count": 5, "max_tokens": 50, "requests_per_minute": 60,
+                        "max_consecutive_errors": 2}}
+    online = {"up": False}
+    calls = []
+
+    class FakeClient:
+        def __init__(self, cfg, key, model):
+            self.model = model
+
+        def complete(self, messages):
+            calls.append(1)
+            if not online["up"]:
+                raise llm.LLMError("gave up after 4 attempts: URLError: no network")
+            return {"content": '{"category": "other", "evidence": "e", "confidence": 1}', "model": self.model,
+                    "usage": {}, "latency_s": 0.1}
+
+    monkeypatch.setattr(panel, "PANEL_LABELS", tmp_path / "panel.jsonl")
+    monkeypatch.setattr(panel, "load_config", lambda: config)
+    monkeypatch.setattr(panel, "panel_samples", lambda cfg, count=None: [f"s{i}" for i in range(5)])
+    monkeypatch.setattr(panel, "read_manifest", lambda: {f"s{i}": {} for i in range(5)})
+    monkeypatch.setattr(panel, "read_excerpt", lambda sid: f"log of {sid}")
+    monkeypatch.setattr(llm, "load_api_key", lambda: "key")
+    monkeypatch.setattr(llm, "OpenRouterClient", FakeClient)
+
+    panel.run([])
+    assert len(calls) == 2 and "Stopping after 2 failed calls" in capsys.readouterr().out
+    online["up"] = True
+    panel.run([])
+    assert len(panel.votes_for([f"s{i}" for i in range(5)], MODELS[:1], config)) == 5
+
+
 def test_retry_unparseable_replaces_only_failed_replies(tmp_path, monkeypatch):
     config = {"categories": ["compilation", "other"], "split": {"seed": 1},
               "llm": {"max_excerpt_chars": 1000},

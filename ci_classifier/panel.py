@@ -170,6 +170,7 @@ def run(argv: list[str] | None = None) -> None:
     samples = panel_samples(config, args.count)
     calls = Counter()
     active = list(models)
+    consecutive_errors, max_errors = 0, panel_cfg.get("max_consecutive_errors", 5)
     print(f"Panel {PANEL_PROMPT_VERSION}: {len(models)} models x {len(samples)} samples. Labels and predictions are hidden.")
 
     # Sample by sample, so a stopped run still leaves complete votes for the samples it reached.
@@ -191,7 +192,15 @@ def run(argv: list[str] | None = None) -> None:
                 print(f"  {index}/{len(samples)} {sid} {model}: ERROR {str(exc)[:160]}")
                 if any(code in str(exc) for code in ("HTTP 401", "HTTP 402", "HTTP 403")):
                     active.remove(model)
+                consecutive_errors += 1
+                if consecutive_errors >= max_errors:
+                    # Every answer so far is already on disk; stop instead of burning retries while offline.
+                    print(f"Stopping after {consecutive_errors} failed calls in a row (network down or provider "
+                          "outage?). Run the same command again to resume.")
+                    active.clear()
+                    break
                 continue
+            consecutive_errors = 0
             category, evidence, confidence = llm.parse_response(reply["content"], config["categories"])
             usage = reply["usage"]
             record = {
