@@ -39,5 +39,33 @@ Nhãn phải nhất quán, vì đây là đáp án dùng để chấm điểm c�
   `auto: same chunk as ...`. Không muốn vậy thì chạy với `--no-propagate`.
 - Lỗi kiểu `Line longer than 80 characters`, kiểm tra kích thước package... thuộc `other`.
 
+## Gán nhãn mù (kiểm tra độ tin cậy của nhãn)
+
+Nhãn hiện tại do Claude gán nháp rồi được duyệt khi đã thấy nhãn nháp. Gán mù đo xem nhãn đó có đứng vững không,
+khi không có người thứ hai.
+
+```powershell
+python -m ci_classifier label --blind --labeler <tên> --count 80   # dừng bằng q, chạy lại để làm tiếp
+python -m ci_classifier agreement --labeler <tên>                  # kappa, ma trận nhầm, độ thiên vị của từng phương pháp
+python -m ci_classifier label --adjudicate --labeler <tên>         # chốt nhãn cuối cho các mẫu bất đồng
+```
+
+Quy tắc:
+
+1. **Không mở `data/labels.jsonl`, báo cáo `results/` hay `predictions.csv`** trong lúc gán mù.
+   Nên để ít nhất vài ngày sau lần duyệt nhãn trước, để không nhớ đáp án.
+2. Công cụ chọn cố định 80 mẫu test theo thứ tự ngẫu nhiên. Mỗi đoạn lỗi LogChunks giống hệt nhau chỉ lấy 1 mẫu.
+   Không chọn mẫu theo cảm tính, nếu không kappa sẽ bị lệch.
+3. Dùng đúng các quy tắc ở trên. Không chắc thì bấm `s`: mẫu được ghi là "không rõ" và không tính vào kappa.
+4. Nhãn mù ghi vào `data/blind_labels.jsonl`, **không đổi nhãn đang dùng để chấm điểm**.
+   Chỉ bước `--adjudicate` mới ghi nhãn cuối vào `labels.jsonl`, với ghi chú `adjudicated by <tên>: draft=..., blind=...`.
+5. Khi phân xử, hai nhãn được hiện theo thứ tự ngẫu nhiên, không cho biết nhãn nào của Claude. Có thể chọn một nhãn thứ ba.
+
+Cách đọc Cohen's kappa: dưới 0.6 là yếu, 0.6–0.8 là khá, trên 0.8 là tốt. Nếu phương pháp LLM khớp với nhãn nháp nhiều
+hơn hẳn so với nhãn mù (p nhỏ trong bảng của `agreement`), điểm LLM trước đây đã được nhãn nháp nâng lên.
+
+Hạn chế: người gán mù cũng là người đã duyệt nhãn nháp, nên vẫn có thể nhớ một phần. Kết quả này là cận trên của mức
+đồng thuận thật; ghi rõ điều đó khi báo cáo.
+
 Nếu thấy quy tắc nào nên sửa, hãy sửa file này **trước**, rồi dùng `--relabel` cho các mẫu bị ảnh hưởng,
 và ghi lại thay đổi trong báo cáo cuối.

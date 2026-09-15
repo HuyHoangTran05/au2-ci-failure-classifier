@@ -30,6 +30,9 @@ và không gửi log nội bộ lên LLM bên ngoài khi chưa có mentor đồn
 .\.venv\Scripts\python.exe -m ci_classifier excerpt-eval      # độ phủ đoạn lỗi LogChunks (--set key=value để thử)
 .\.venv\Scripts\python.exe -m ci_classifier fetch-baselines --labelled-only --workers 4
 .\.venv\Scripts\python.exe -m ci_classifier label --review    # duyệt nhãn nháp
+.\.venv\Scripts\python.exe -m ci_classifier label --blind --labeler <tên>   # người gán mù; Claude không tự gán
+.\.venv\Scripts\python.exe -m ci_classifier agreement          # kappa nhãn mù vs nháp, thiên vị theo phương pháp
+.\.venv\Scripts\python.exe -m ci_classifier label --adjudicate --labeler <tên>
 .\.venv\Scripts\python.exe -m ci_classifier llm-run --limit 40
 .\.venv\Scripts\python.exe -m ci_classifier evaluate --cv 5   # báo cáo -> results/<thời gian>/
 .\.venv\Scripts\python.exe -m ci_classifier tune-tfidf         # chọn [tfidf] abstain_below bằng CV trên train
@@ -44,6 +47,7 @@ và không gửi log nội bộ lên LLM bên ngoài khi chưa có mentor đồn
 | `fetch.py`, `logchunks.py` | thu thập log -> `data/raw/*.log.gz`, `data/manifest.jsonl` |
 | `excerpt.py` | cắt log thành đoạn quan trọng; **cả 3 phương pháp chỉ nhìn thấy đoạn cắt** |
 | `label.py`, `split.py` | nhãn (`data/labels.jsonl`), chia train/test theo nhóm (repo, workflow) |
+| `agreement.py` | nhãn mù so với nhãn nháp: kappa (bootstrap theo nhóm), độ thiên vị theo phương pháp, hàng đợi phân xử |
 | `rules.py`, `tfidf.py`, `llm.py`, `methods.py` | 3 bộ phân loại + `hybrid` (LLM, TF-IDF khi LLM trả unknown); `build_predictor` là điểm vào chung |
 | `tune_tfidf.py` | chọn ngưỡng abstain TF-IDF bằng CV trên train (không đọc test) |
 | `evaluate.py`, `stats.py`, `crossval.py` | metrics (pandas), bootstrap CI theo nhóm, McNemar, CV; báo cáo Jinja2 `templates/report.md.j2` |
@@ -56,6 +60,9 @@ và không gửi log nội bộ lên LLM bên ngoài khi chưa có mentor đồn
 - File `.jsonl` trong `data/` là **append-only**: bản ghi sau cùng của cùng `sample_id` thắng. Không sửa/xoá dòng cũ
   (trừ `llm-run --reparse`, chỉ đọc lại câu trả lời đã lưu).
 - `labels.jsonl` có `labeler` (`human` / `claude-draft`); giữ nguyên nguồn gốc nhãn khi báo cáo.
+- `blind_labels.jsonl`: nhãn gán mù (label `null` = không rõ), không bao giờ ghi đè `labels.jsonl`. Chỉ `label --adjudicate`
+  ghi nhãn cuối (note `adjudicated by ...`). Claude không được tạo nhãn mù thay người, và không hiện nhãn hay dự đoán
+  cho người đang gán mù.
 - `data/raw/`, `data/excerpts/`, `data/external/` tái tạo được và bị gitignore. `manifest`, `labels`, `split`,
   `llm_predictions` là công sức thật, phải commit.
 - Profile cắt log: `CI_EXCERPT_PROFILE=<tên>` áp `[excerpt.profiles.<tên>]` và đọc/ghi `data/excerpts-<tên>/`;

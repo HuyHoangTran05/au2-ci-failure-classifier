@@ -76,6 +76,11 @@ python -m ci_classifier label --source logchunks       # nhanh: chỉ cần đ�
 python -m ci_classifier label --source github-actions
 python -m ci_classifier label --review                 # duyệt nhãn nháp (labeler = claude-draft)
 
+# 3b. Kiểm tra độ tin cậy của nhãn khi chỉ có một người: gán mù lại 80 mẫu test, đo kappa, phân xử bất đồng
+python -m ci_classifier label --blind --labeler <tên> --count 80
+python -m ci_classifier agreement --labeler <tên>
+python -m ci_classifier label --adjudicate --labeler <tên>
+
 # 4. Chia train/test MỘT LẦN, sau khi đã gán nhãn xong
 python -m ci_classifier split
 
@@ -187,7 +192,8 @@ Cách đọc:
 - LLM: khoảng 1.5k token prompt + 300 token trả lời mỗi mẫu, độ trễ trung vị 4.5 giây, chi phí 0 USD. 8/291 câu trả
   lời không đọc được JSON. Loại yếu nhất là `infrastructure` (F1 0.39), hay nhầm với `test_assertion`.
 - ⚠️ Nhãn ban đầu do một LLM (Claude) gán rồi người duyệt giữ nguyên. Duyệt khi đã thấy nhãn nháp dễ bị ảnh hưởng
-  theo nhãn đó, nên điểm LLM vẫn có thể hơi cao. Nên nhờ một người thứ hai gán mù khoảng 50 mẫu để đo Cohen's kappa.
+  theo nhãn đó, nên điểm LLM vẫn có thể hơi cao. Chưa có người thứ hai, nên dùng `label --blind` để tự gán mù lại
+  80 mẫu test rồi `agreement` để đo Cohen's kappa (xem `docs/labeling-guide.md`).
 
 Mẫu `authentication` rất hiếm nên đã được bổ sung bằng tìm kiếm có mục tiêu:
 `fetch --workflow-filter ... --require <regex lỗi xác thực> --tag targeted-auth`. Trong 38 log khớp từ khóa, chỉ 12 log
@@ -220,7 +226,8 @@ ci_classifier/
   excerpt.py                cắt log -> data/excerpts/*.txt (chiến lược marker / hints / baseline-diff)
   excerpt_eval.py           đo độ phủ đoạn lỗi LogChunks và lý do bỏ sót
   baselines.py              tải run thành công gần nhất -> data/baselines/, data/baselines.jsonl
-  label.py                  công cụ gán nhãn -> data/labels.jsonl
+  label.py                  công cụ gán nhãn -> data/labels.jsonl; --blind -> data/blind_labels.jsonl; --adjudicate
+  agreement.py              nhãn mù so với nhãn nháp: Cohen's kappa, ma trận nhầm, độ thiên vị của từng phương pháp
   split.py                  chia train/test -> data/split.json
   rules.py                  baseline 1: luật regex
   tfidf.py                  baseline 2: TF-IDF + logistic regression
@@ -239,4 +246,4 @@ tests/                      pytest; regression_cases.jsonl = log thật phải p
 ```
 
 `data/raw/` và `data/excerpts/` tái tạo được nên không cần lưu vào git. `labels.jsonl`, `split.json`,
-`manifest.jsonl` và `triage_sessions.jsonl` là công sức của bạn, **phải giữ lại**.
+`manifest.jsonl`, `blind_labels.jsonl` và `triage_sessions.jsonl` là công sức của bạn, **phải giữ lại**.
