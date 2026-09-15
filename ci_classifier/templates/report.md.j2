@@ -36,6 +36,23 @@ samples are treated as independent here, so read borderline p-values with care):
 | {{ p.a }} vs {{ p.b }} | {{ p.samples }} | {{ p.a_only }} | {{ p.b_only }} | {{ "%.2g"|format(p.p_value) }} |
 {% endfor %}
 {% endif %}
+{% if cv %}
+
+## Cross-validation
+
+Grouped, stratified {{ cv.k }}-fold cross-validation over all {{ cv.samples }} labelled samples (whole repo/workflow
+groups per fold; TF-IDF refitted on the other folds). Per-fold values are in `cv_folds.csv`.
+
+| Method | Folds | Samples scored | Accuracy (mean ± sd) | Macro F1 (mean ± sd) | Abstention (mean) |
+| --- | --- | --- | --- | --- | --- |
+{% for r in cv.rows %}
+| {{ r.method }} | {{ r.folds }} | {{ r.scored }} | {{ r.accuracy_mean|fmt }} ± {{ r.accuracy_std|fmt }} | {{ r.macro_f1_mean|fmt }} ± {{ r.macro_f1_std|fmt }} | {{ r.abstention_mean|fmt }} |
+{% endfor %}
+
+{% for r in cv.rows if r.scored < cv.samples %}
+> {{ r.method }} is scored only on the {{ r.scored }} samples that already have stored answers (`llm-run`).
+{% endfor %}
+{% endif %}
 {% for m in methods %}
 
 ## {{ m.title }}

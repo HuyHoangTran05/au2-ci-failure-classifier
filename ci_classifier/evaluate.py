@@ -3,7 +3,9 @@
 Usage:
     python -m ci_classifier evaluate
 
-Output: results/<timestamp>/report.md (Jinja2), metrics.json, predictions.csv
+    python -m ci_classifier evaluate --cv 5      # also 5-fold grouped cross-validation
+
+Output: results/<timestamp>/report.md (Jinja2), metrics.json, predictions.csv, cv_folds.csv (with --cv)
 Triage-time sessions from `python -m ci_classifier triage` are summarised when present.
 """
 
@@ -22,7 +24,7 @@ from jinja2 import Environment, FileSystemLoader
 
 from .common import (DRAFT_LABELER, LABELS, RESULTS, TRIAGE_LOG, UNKNOWN, load_config, now_iso, read_excerpt, read_jsonl,
                      read_labels, read_manifest, read_split)
-from . import llm, stats
+from . import crossval, llm, stats
 from .methods import METHODS, build_predictor
 from .split import group_of
 
@@ -171,7 +173,9 @@ def render_report(context: dict) -> str:
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="python -m ci_classifier evaluate", description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.parse_args(argv)
+    parser.add_argument("--cv", type=int, metavar="K", default=0,
+                        help="also run grouped, stratified K-fold cross-validation over all labelled samples")
+    args = parser.parse_args(argv)
 
     config = load_config()
     categories = config["categories"]
@@ -238,7 +242,13 @@ def main(argv: list[str] | None = None) -> None:
     llm_cost = llm_usage(test_ids, texts, config) if "llm" in results else None
     significance = uncertainty(predictions, results, categories, config["evaluation"]["bootstrap_samples"],
                                config["split"]["seed"])
+    cv_folds = cv_summary = None
+    if args.cv:
+        cv_folds = crossval.cross_validate(list(labels), labels, manifest, config, args.cv, config["split"]["seed"])
+        cv_summary = crossval.summarize(cv_folds)
+        cv_folds.to_csv(out_dir / "cv_folds.csv", index=False)
     metrics = {"run": run, "config": config, "triage": triage, "llm_usage": llm_cost, "significance": significance,
+               "cross_validation": cv_summary,
                "methods": {m: {k: v for k, v in r.items() if k != "scored_rows"} for m, r in results.items()}}
     (out_dir / "metrics.json").write_text(json.dumps(to_json(metrics), indent=2), encoding="utf-8")
 
@@ -262,6 +272,8 @@ def main(argv: list[str] | None = None) -> None:
         "small_test_set": SMALL_TEST_SET,
         "methods": method_views,
         "significance": significance,
+        "cv": None if cv_summary is None else {"k": args.cv, "samples": len(labels),
+                                               "rows": cv_summary.reset_index().to_dict("records")},
         "triage": None if triage is None else triage.reset_index().to_dict("records"),
     })
     (out_dir / "report.md").write_text(report, encoding="utf-8")
@@ -270,6 +282,9 @@ def main(argv: list[str] | None = None) -> None:
         s = result["summary"]
         print(f"{method:6} accuracy={fmt(s['accuracy'])} abstention={fmt(s['abstention_rate'])} "
               f"macro_f1={fmt(s['macro_f1'])}")
+    if cv_summary is not None:
+        print(f"cross-validation ({args.cv} folds):")
+        print(cv_summary.round(3).to_string())
     if triage is not None:
         print(triage.to_string())
     print(f"Report: {out_dir / 'report.md'}")
