@@ -7,7 +7,7 @@ appears in the baseline job, leaving the lines that are new in the failing run.
 
 Usage:
     python -m ci_classifier fetch-baselines
-    python -m ci_classifier fetch-baselines --limit 10
+    python -m ci_classifier fetch-baselines --labelled-only --workers 4
 
 Output: data/baselines/<sample_id>.json.gz (job name -> log text), data/baselines.jsonl (one record per sample)
 """
@@ -20,8 +20,9 @@ import json
 import subprocess
 import urllib.parse
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor
 
-from .common import DATA, append_jsonl, load_config, now_iso, read_jsonl, read_manifest
+from .common import DATA, append_jsonl, load_config, now_iso, read_jsonl, read_labels, read_manifest
 
 BASELINE_DIR = DATA / "baselines"
 BASELINE_INDEX = DATA / "baselines.jsonl"
@@ -108,28 +109,34 @@ def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="python -m ci_classifier fetch-baselines", description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--limit", type=int, help="maximum number of samples to process this run")
+    parser.add_argument("--labelled-only", action="store_true", help="skip samples without a label")
+    parser.add_argument("--workers", type=int, default=4, help="samples fetched in parallel")
     args = parser.parse_args(argv)
 
     timeout = config["fetch"]["timeout_seconds"]
     done = {r["sample_id"] for r in read_jsonl(BASELINE_INDEX)}
+    labels = read_labels()
     todo = [r for r in read_manifest().values()
             if r.get("source", "github-actions") == "github-actions" and r.get("status") == "ok"
-            and r["sample_id"] not in done]
+            and r["sample_id"] not in done and (not args.labelled_only or r["sample_id"] in labels)]
     if args.limit is not None:
         todo = todo[:args.limit]
-    print(f"{len(done)} samples already processed; fetching baselines for {len(todo)}.")
+    print(f"{len(done)} samples already processed; fetching baselines for {len(todo)}.", flush=True)
+
+    def work(record: dict) -> tuple[dict, dict]:
+        try:
+            return record, fetch_one(record, timeout)
+        except (RuntimeError, subprocess.TimeoutExpired, KeyError, json.JSONDecodeError) as exc:
+            return record, {"status": "error", "error": str(exc)[:300]}
 
     totals: Counter[str] = Counter()
-    for index, record in enumerate(todo, start=1):
-        try:
-            result = fetch_one(record, timeout)
-        except (RuntimeError, subprocess.TimeoutExpired, KeyError, json.JSONDecodeError) as exc:
-            result = {"status": "error", "error": str(exc)[:300]}
-        append_jsonl(BASELINE_INDEX, {"sample_id": record["sample_id"], **result, "fetched_at": now_iso()})
-        totals[result["status"]] += 1
-        print(f"  {index}/{len(todo)} {record['sample_id']}: {result['status']}"
-              + (f" ({result.get('matched_jobs')}/{result.get('failed_jobs')} jobs)" if result["status"] == "ok" else ""),
-              flush=True)
+    with ThreadPoolExecutor(max_workers=args.workers) as pool:
+        # Only the main thread appends to the index, so records never interleave.
+        for index, (record, result) in enumerate(pool.map(work, todo), start=1):
+            append_jsonl(BASELINE_INDEX, {"sample_id": record["sample_id"], **result, "fetched_at": now_iso()})
+            totals[result["status"]] += 1
+            jobs = f" ({result.get('matched_jobs')}/{result.get('failed_jobs')} jobs)" if result["status"] == "ok" else ""
+            print(f"  {index}/{len(todo)} {record['sample_id']}: {result['status']}{jobs}", flush=True)
     print("Done: " + ", ".join(f"{k}={v}" for k, v in totals.items()))
 
 
