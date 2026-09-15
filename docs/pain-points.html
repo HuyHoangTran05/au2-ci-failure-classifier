@@ -163,6 +163,14 @@ Build FAILED.
         <p>Dùng LLM trước; khi LLM trả unknown thì TF-IDF trả lời thay. Kết quả 0.74 so với 0.71: đúng thêm 9 mẫu, không làm sai thêm mẫu nào (McNemar p = 0.004). Ý tưởng nảy ra khi phân tích trên tập test, nên con số này có thể hơi lạc quan.</p>
       </div>
       <div class="pain">
+        <div class="stack"><span class="status done">Đã làm</span><h3>Luật từ khóa</h3></div>
+        <p>Luật được sửa chỉ dựa trên tập train: <code>npm ERR!</code> không còn tính mọi lỗi npm là <code>dependency</code>, thêm luật cho lint, lỗi mạng và lỗi API. Trên train accuracy tăng từ 0.26 lên 0.45, nhưng trên test chỉ từ 0.30 lên 0.34 (p = 0.015): luật mới khớp nhiều lỗi riêng của các repo trong train. Khi luật chịu trả lời, tỷ lệ đúng là 79%.</p>
+      </div>
+      <div class="pain">
+        <div class="stack"><span class="status done">Đã làm</span><h3>LLM trên train, CI</h3></div>
+        <p>LLM trả lời thêm 40 mẫu GitHub Actions trong train, nhưng chỉ khớp nhãn 23/40 (0.58), thấp hơn 0.69 trên tập test. Mẫu còn nhỏ, nhưng con số test của LLM trên log GitHub Actions có thể đang lạc quan. Repo đã có GitHub Actions chạy pytest mỗi lần push.</p>
+      </div>
+      <div class="pain">
         <div class="stack"><span class="status wait">Đang chờ gán</span><h3>Gán nhãn mù</h3></div>
         <p>Công cụ <code>label --blind</code> ẩn nhãn cũ và dự đoán, chọn cố định 80 mẫu test. <code>agreement</code> tính Cohen's kappa và so điểm của từng phương pháp theo nhãn nháp và theo nhãn mù. <code>label --adjudicate</code> dùng để chốt nhãn cuối cho các mẫu bất đồng. Chưa có kết quả, vì cần người gán thật.</p>
       </div>
@@ -257,16 +265,16 @@ Build FAILED.
           <tr><th>Phương pháp</th><th class="n">Accuracy test</th><th class="n">Chỉ GitHub Actions</th><th class="n">CV 5 lần</th><th class="n">Trả lời unknown</th><th class="n">Macro F1</th></tr>
         </thead>
         <tbody>
-          <tr><td>Luật từ khóa (regex)</td><td class="n">0.30<span class="ci">[0.19, 0.42]</span></td><td class="n">0.37</td><td class="n">0.27 ± 0.04</td><td class="n">54%</td><td class="n">0.37</td></tr>
+          <tr><td>Luật từ khóa (regex)<span class="ci">đã sửa trên train</span></td><td class="n">0.34<span class="ci">[0.23, 0.46]</span></td><td class="n">0.35</td><td class="n">0.42 ± 0.09*</td><td class="n">57%</td><td class="n">0.40</td></tr>
           <tr><td>TF-IDF + logistic regression<span class="ci">ngưỡng 0.2, chọn trên train</span></td><td class="n">0.57<span class="ci">[0.44, 0.69]</span></td><td class="n">0.32</td><td class="n">0.62 ± 0.07</td><td class="n">0%</td><td class="n">0.29</td></tr>
-          <tr><td>LLM (nemotron-3-super, miễn phí)</td><td class="n">0.71<span class="ci">[0.59, 0.80]</span></td><td class="n">0.69</td><td class="n">0.72 ± 0.07</td><td class="n">8%</td><td class="n">0.67</td></tr>
-          <tr class="best"><td>Hybrid<span class="ci">LLM, TF-IDF khi LLM trả unknown</span></td><td class="n">0.74<span class="ci">[0.62, 0.83]</span></td><td class="n">0.71</td><td class="n">0.75 ± 0.06</td><td class="n">0%</td><td class="n">0.67</td></tr>
+          <tr><td>LLM (nemotron-3-super, miễn phí)</td><td class="n">0.71<span class="ci">[0.59, 0.80]</span></td><td class="n">0.69</td><td class="n">0.70 ± 0.08</td><td class="n">8%</td><td class="n">0.67</td></tr>
+          <tr class="best"><td>Hybrid<span class="ci">LLM, TF-IDF khi LLM trả unknown</span></td><td class="n">0.74<span class="ci">[0.62, 0.83]</span></td><td class="n">0.71</td><td class="n">0.73 ± 0.06</td><td class="n">0%</td><td class="n">0.67</td></tr>
         </tbody>
       </table>
     </div>
-    <p class="note">Chỉ GitHub Actions: 62 mẫu test, khoảng tin cậy khoảng ±0.17. Cross-validation của LLM và hybrid chỉ tính 293 mẫu đã có câu trả lời lưu sẵn, gần như toàn bộ nằm trong tập test.</p>
+    <p class="note">Chỉ GitHub Actions: 62 mẫu test, khoảng tin cậy khoảng ±0.17. Cross-validation của LLM và hybrid chỉ tính 333 mẫu đã có câu trả lời lưu sẵn (291 mẫu test + 42 mẫu train). * Luật được sửa trên chính các mẫu train, nên con số CV của luật là lạc quan.</p>
     <ul class="points">
-      <li><strong>Luật từ chối quá nhiều; TF-IDF từng bị ngưỡng quá cao.</strong> Luật chưa có mẫu cho <code>other</code> và <code>infrastructure</code>. Ngưỡng abstain cũ của TF-IDF (0.4) khiến 73% mẫu bị trả unknown; chọn lại bằng cross-validation trên train (0.2) thì accuracy lên 0.57, nhưng TF-IDF vẫn yếu ở loại hiếm và trên log GitHub Actions (0.32).</li>
+      <li><strong>Luật từ chối quá nhiều; TF-IDF từng bị ngưỡng quá cao.</strong> Luật vẫn trả unknown cho 57% mẫu test và chưa đoán đúng mẫu <code>infrastructure</code> nào (0/21). Ngưỡng abstain cũ của TF-IDF (0.4) khiến 73% mẫu bị trả unknown; chọn lại bằng cross-validation trên train (0.2) thì accuracy lên 0.57, nhưng TF-IDF vẫn yếu ở loại hiếm và trên log GitHub Actions (0.32).</li>
       <li><strong>LLM tốt hơn rõ nhưng có thể bị thiên vị lên.</strong> Nhãn test do một LLM khác gán nháp. Loại yếu nhất của LLM là <code>infrastructure</code> (F1 0.39), hay nhầm với <code>test_assertion</code>. Model miễn phí bị giới hạn lượt gọi và đôi khi bị chặn tạm thời.</li>
       <li><strong>Tập test nhỏ.</strong> Đã có khoảng tin cậy và cross-validation, nhưng khoảng vẫn rộng khoảng ±0.1 vì chỉ có 43 nhóm workflow. Riêng log GitHub Actions (định dạng mục tiêu) chỉ có 62 mẫu.</li>
       <li><strong>TF-IDF học từ vựng Travis.</strong> 80% dữ liệu train là LogChunks, nên trên log GitHub Actions TF-IDF chỉ đạt 0.32 và hybrid gần như không giúp thêm (đúng thêm 1 mẫu).</li>
@@ -291,7 +299,7 @@ Build FAILED.
   </section>
 
   <footer>
-    <span>Nguồn số liệu: <code>results/20260915-112959/report.md</code>, <code>results/20260915-113027-github-actions/report.md</code>, <code>results/20260915-112821-tune-tfidf/thresholds.csv</code>, <code>data/labels.jsonl</code>, <code>data/manifest.jsonl</code>.</span>
+    <span>Nguồn số liệu: <code>results/20260915-115444/report.md</code>, <code>results/20260915-115512-github-actions/report.md</code>, <code>results/20260915-112821-tune-tfidf/thresholds.csv</code>, <code>data/labels.jsonl</code>, <code>data/manifest.jsonl</code>.</span>
     <span>Báo cáo chi tiết: <code>docs/reports/2026-09-15-tfidf-threshold-and-hybrid.md</code>; quy trình gán mù: <code>docs/labeling-guide.md</code>.</span>
     <span>Repo: <a href="https://github.com/HuyHoangTran05/au2-ci-failure-classifier">HuyHoangTran05/au2-ci-failure-classifier</a> (private)</span>
   </footer>

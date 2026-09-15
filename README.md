@@ -161,32 +161,36 @@ Dữ liệu: 944 mẫu có nhãn (194 GitHub Actions, 750 LogChunks), toàn bộ
 HuyHoangTran kiểm tra và giữ nguyên). Chia theo (repo, workflow), phân tầng theo (nguồn, loại lỗi): 653 train / 291 test.
 Báo cáo đầy đủ nằm trong `results/`.
 
-**Tập test cố định (291 mẫu)**, khoảng tin cậy 95% bằng bootstrap theo nhóm workflow (`results/20260915-112959/`):
+**Tập test cố định (291 mẫu)**, khoảng tin cậy 95% bằng bootstrap theo nhóm workflow (`results/20260915-115444/`):
 
 | Phương pháp | Accuracy [95% CI] | Macro F1 [95% CI] | Abstention (unknown) | Accuracy khi trả lời |
 | --- | --- | --- | --- | --- |
-| Luật từ khóa | 0.30 [0.19, 0.42] | 0.37 [0.19, 0.46] | 0.54 | 0.65 |
+| Luật từ khóa | 0.34 [0.23, 0.46] | 0.40 [0.22, 0.52] | 0.57 | 0.79 |
 | TF-IDF + logistic regression (ngưỡng 0.2) | 0.57 [0.44, 0.69] | 0.29 [0.22, 0.44] | 0.00 | 0.57 |
 | LLM `nvidia/nemotron-3-super-120b-a12b:free` (prompt v1) | 0.71 [0.59, 0.80] | **0.67** [0.50, 0.76] | 0.08 | 0.77 |
 | Hybrid: LLM, TF-IDF khi LLM trả `unknown` | **0.74** [0.62, 0.83] | **0.67** [0.50, 0.76] | 0.00 | 0.74 |
 
-**Kiểm định McNemar** (cùng 291 mẫu): LLM hơn TF-IDF (p ≈ 9e-5), TF-IDF hơn luật (p ≈ 2e-12),
+**Kiểm định McNemar** (cùng 291 mẫu): LLM hơn TF-IDF (p ≈ 9e-5), TF-IDF hơn luật (p ≈ 2e-10),
 hybrid hơn LLM (đúng thêm 9 mẫu, không sai thêm mẫu nào, p = 0.004).
 
 **Cross-validation 5 lần theo nhóm** trên toàn bộ 944 mẫu (mean ± sd):
 
 | Phương pháp | Accuracy | Macro F1 | Abstention |
 | --- | --- | --- | --- |
-| Luật từ khóa | 0.27 ± 0.04 | 0.33 ± 0.03 | 0.55 |
+| Luật từ khóa (lạc quan: luật được sửa trên chính các mẫu train) | 0.42 ± 0.09 | 0.51 ± 0.10 | 0.48 |
 | TF-IDF | 0.62 ± 0.07 | 0.42 ± 0.11 | 0.00 |
-| LLM (chỉ 293 mẫu đã có câu trả lời) | 0.72 ± 0.07 | 0.62 ± 0.07 | 0.08 |
-| Hybrid (cùng 293 mẫu) | 0.75 ± 0.06 | 0.60 ± 0.06 | 0.00 |
+| LLM (chỉ 333 mẫu đã có câu trả lời) | 0.70 ± 0.08 | 0.62 ± 0.09 | 0.08 |
+| Hybrid (cùng 333 mẫu) | 0.73 ± 0.06 | 0.62 ± 0.10 | 0.00 |
 
 Cách đọc:
 - Khoảng tin cậy **rộng** (khoảng ±0.1) vì tập test chỉ có 43 nhóm workflow: cần thêm dữ liệu để kết luận chi tiết.
 - **Ngưỡng TF-IDF đã đổi từ 0.4 sang 0.2** (chọn bằng `tune-tfidf`, chỉ nhìn train). Ngưỡng cũ khiến TF-IDF trả
   `unknown` cho 73% mẫu test, nên kết quả trước đây (0.23, "luật ≈ TF-IDF") là do ngưỡng chứ không phải do phương pháp.
   TF-IDF vẫn yếu ở các loại hiếm (macro F1 0.29) và trên log GitHub Actions (0.32).
+- **Luật từ khóa đã sửa** (chỉ nhìn train): train 0.26 → 0.45 nhưng test chỉ 0.30 → 0.34, tức luật mới khớp nhiều
+  lỗi riêng của các repo trong train. Xem [`docs/reports/2026-09-15-rules-ci-and-llm-train.md`](docs/reports/2026-09-15-rules-ci-and-llm-train.md).
+- LLM trên 40 mẫu GitHub Actions của **train** chỉ khớp nhãn 0.58 (test: 0.69), nên con số test của LLM trên log
+  GitHub Actions có thể lạc quan.
 - ⚠️ Ý tưởng hybrid được chọn sau khi thử trên tập test, nên con số test có thể hơi lạc quan. Chi tiết:
   [`docs/reports/2026-09-15-tfidf-threshold-and-hybrid.md`](docs/reports/2026-09-15-tfidf-threshold-and-hybrid.md).
 - LLM: khoảng 1.5k token prompt + 300 token trả lời mỗi mẫu, độ trễ trung vị 4.5 giây, chi phí 0 USD. 8/291 câu trả

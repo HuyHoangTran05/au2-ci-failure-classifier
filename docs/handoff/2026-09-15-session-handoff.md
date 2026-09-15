@@ -27,9 +27,16 @@ Tài liệu bàn giao để một phiên làm việc mới (người hoặc Clau
 
 ## 3. Số liệu chính (để khỏi phải chạy lại)
 
-> **Cập nhật sau bàn giao (15/09/2026, chiều):** ngưỡng TF-IDF đổi từ 0.4 sang 0.2 (chọn bằng `tune-tfidf` trên train),
-> thêm phương pháp `hybrid`. Test: TF-IDF 0.57, hybrid 0.74; kết quả luật và LLM không đổi. Các số TF-IDF bên dưới là
-> số cũ. Xem `docs/reports/2026-09-15-tfidf-threshold-and-hybrid.md` và `results/20260915-112959/`.
+> **Cập nhật sau bàn giao (15/09/2026, chiều) - số liệu bên dưới đã cũ, dùng số trong khung này:**
+> - Ngưỡng TF-IDF đổi từ 0.4 sang 0.2 (`tune-tfidf`, chỉ nhìn train); thêm phương pháp `hybrid` (LLM, TF-IDF khi LLM trả unknown).
+> - Luật từ khóa được sửa trên train (npm, auth, lint, network). CI GitHub Actions chạy pytest.
+> - LLM đã trả lời thêm 40 mẫu GitHub Actions trong train (tổng 444 câu trả lời).
+> - Test 291 mẫu (`results/20260915-115444/`): luật 0.34, TF-IDF 0.57, LLM 0.71, hybrid 0.74.
+> - Công cụ gán nhãn mù đã có (`label --blind`, `agreement`, `label --adjudicate`) nhưng **chưa có nhãn mù nào**.
+> - Báo cáo: `docs/reports/2026-09-15-tfidf-threshold-and-hybrid.md`, `docs/reports/2026-09-15-rules-ci-and-llm-train.md`.
+> - **Việc tiếp theo, theo thứ tự:** (1) người dùng gán mù 80 mẫu → `agreement` → `--adjudicate` → `evaluate --cv 5`;
+>   (2) `llm-run --split train --limit 40` mỗi ngày; (3) chỉ sau khi nhãn đã chốt mới làm prompt v2 hoặc thêm dữ liệu.
+>   Đừng tinh chỉnh thêm trên tập test trước bước (1).
 
 **Dữ liệu:** 944 mẫu có nhãn, **tất cả `labeler: human`** (926 nhãn nháp do Claude gán được người duyệt giữ nguyên
 bằng `label --accept-drafts HuyHoangTran`, 18 nhãn duyệt từng mẫu). Nguồn: 194 GitHub Actions (164 lấy ngẫu nhiên,
