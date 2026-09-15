@@ -2,6 +2,8 @@
 
 Hướng dẫn cho Claude Code (và người mới) khi làm việc trong repo này.
 
+**Bắt đầu phiên mới:** đọc bản bàn giao mới nhất trong `docs/handoff/` (trạng thái, số liệu, việc tiếp theo).
+
 ## Dự án
 
 AU2 - phân loại lỗi CI (intern project VSF, mentor: xem `../ASSIGNMENT.md`). Đọc log của một job CI bị fail,
