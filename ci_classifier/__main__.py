@@ -9,6 +9,7 @@ COMMANDS = {
     "fetch": "download logs of failed GitHub Actions runs",
     "import-logchunks": "import the LogChunks data set (Travis CI logs with marked failure chunks)",
     "excerpt": "cut raw logs down to the lines that explain the failure",
+    "excerpt-eval": "measure how well excerpts keep LogChunks' marked failure chunks",
     "label": "label excerpts by hand",
     "split": "split labelled samples into train and test sets",
     "rules": "inspect keyword-rule predictions on the train set",
@@ -18,7 +19,7 @@ COMMANDS = {
     "triage": "time human triage with and without the classifier's hint",
 }
 # Commands whose module name differs from the command name.
-MODULES = {"import-logchunks": "logchunks", "llm-run": "llm"}
+MODULES = {"import-logchunks": "logchunks", "llm-run": "llm", "excerpt-eval": "excerpt_eval"}
 
 
 def main() -> None:

@@ -72,8 +72,13 @@ def iter_examples(archive: zipfile.ZipFile):
             }
 
 
+# LogChunks chunk text lost the ESC byte of colour codes ("[31m") and every "<" character ("Promisevoid>"),
+# so both sides of the comparison drop them; otherwise identical lines fail to match.
+BARE_ANSI = re.compile(r"\[[0-9;]*[mK]")
+
+
 def normalize_line(line: str) -> str:
-    return " ".join(clean_line(line).split())
+    return " ".join(BARE_ANSI.sub("", clean_line(line)).replace("<", "").split())
 
 
 def chunk_coverage(chunk: str, excerpt: str) -> float:

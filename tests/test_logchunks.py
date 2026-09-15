@@ -38,6 +38,19 @@ def test_iter_examples_reads_chunk_and_log():
     assert example["log"].startswith(b"build")
 
 
+def test_chunk_coverage_handles_logchunks_text_damage():
+    excerpt = "\x1b[31mexpected Promise<void>\x1b[0m\nat Context.<anonymous> (a.js:1)"
+    assert chunk_coverage("[31mexpected Promisevoid>[0m\nat Context.anonymous> (a.js:1)", excerpt) == 1.0
+
+
+def test_diagnose_reports_chunk_far_before_marker():
+    from ci_classifier.excerpt_eval import diagnose
+    raw = "\n".join(["setup"] * 5 + ["boom: real cause"] + ["noise"] * 100 + ['The command "make" exited with 1.'])
+    cfg = {"context_before_error": 40, "max_line_chars": 400}
+    assert diagnose(["boom: real cause"], raw, cfg) == "chunk far before marker"
+    assert diagnose(["not in log"], raw, cfg) == "chunk not found in raw log"
+
+
 def test_chunk_coverage_ignores_ansi_and_whitespace():
     excerpt = "-- context --\nstep one\n  Failed   1/13 subtests\n"
     assert chunk_coverage("\x1b[31mFailed 1/13 subtests\x1b[0m", excerpt) == 1.0
