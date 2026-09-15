@@ -1,12 +1,42 @@
 # CI failure classifier evaluation
 
-- Created: 2026-09-15T02:17:30+00:00
+- Created: 2026-09-15T02:43:55+00:00
 - Train / test samples: 653 / 291
 - Test labels: authentication=10, compilation=29, dependency=32, infrastructure=21, other=96, test_assertion=103
-- labels.jsonl sha256 (first 16): `cd7a7ba744175486`; split created 2026-09-14T10:32:49+00:00
+- labels.jsonl sha256 (first 16): `13813d6217e55d27`; split created 2026-09-14T10:32:49+00:00
 
-> 284 of 291 test labels are unreviewed drafts (claude-draft).
-> Review them with `python -m ci_classifier label --review` before trusting these numbers.
+## Uncertainty and significance
+
+95% confidence intervals from a cluster bootstrap (1000 resamples of whole
+repo/workflow groups, since runs of one workflow are not independent):
+
+| Method | Samples | Accuracy [95% CI] | Macro F1 [95% CI] |
+| --- | --- | --- | --- |
+| rules | 291 | 0.30 [0.19, 0.42] | 0.37 [0.19, 0.46] |
+| tfidf | 291 | 0.23 [0.11, 0.34] | 0.16 [0.10, 0.22] |
+| llm | 291 | 0.71 [0.59, 0.80] | 0.67 [0.50, 0.76] |
+
+Exact McNemar test on the samples both methods scored (p < 0.05: the accuracy difference is unlikely to be chance;
+samples are treated as independent here, so read borderline p-values with care):
+
+| A vs B | Samples | Only A right | Only B right | p-value |
+| --- | --- | --- | --- | --- |
+| rules vs tfidf | 291 | 64 | 44 | 0.067 |
+| rules vs llm | 291 | 17 | 137 | 1.7e-24 |
+| tfidf vs llm | 291 | 20 | 160 | 2.6e-28 |
+
+## Cross-validation
+
+Grouped, stratified 5-fold cross-validation over all 944 labelled samples (whole repo/workflow
+groups per fold; TF-IDF refitted on the other folds). Per-fold values are in `cv_folds.csv`.
+
+| Method | Folds | Samples scored | Accuracy (mean ± sd) | Macro F1 (mean ± sd) | Abstention (mean) |
+| --- | --- | --- | --- | --- | --- |
+| rules | 5 | 944 | 0.27 ± 0.04 | 0.33 ± 0.03 | 0.55 |
+| tfidf | 5 | 944 | 0.21 ± 0.07 | 0.17 ± 0.06 | 0.78 |
+| llm | 5 | 293 | 0.72 ± 0.07 | 0.62 ± 0.07 | 0.08 |
+
+> llm is scored only on the 293 samples that already have stored answers (`llm-run`).
 
 ## Baseline 1 - keyword rules
 
@@ -14,7 +44,7 @@
 - Abstention rate (predicted unknown): 0.54
 - Accuracy when answered: 0.65
 - Macro F1: 0.37
-- Runtime: 0.6 ms/sample
+- Runtime: 0.5 ms/sample
 
 | Category | Precision | Recall | F1 | Support | Predicted |
 | --- | --- | --- | --- | --- | --- |
@@ -63,7 +93,7 @@ Examples of mistakes:
 - Abstention rate (predicted unknown): 0.73
 - Accuracy when answered: 0.82
 - Macro F1: 0.16
-- Runtime: 3.8 ms/sample
+- Runtime: 1.1 ms/sample
 
 | Category | Precision | Recall | F1 | Support | Predicted |
 | --- | --- | --- | --- | --- | --- |

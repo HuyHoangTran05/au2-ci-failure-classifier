@@ -1,6 +1,6 @@
 {
   "run": {
-    "created_at": "2026-09-15T02:17:30+00:00",
+    "created_at": "2026-09-15T02:43:55+00:00",
     "train_samples": 653,
     "test_samples": 291,
     "test_label_counts": {
@@ -11,8 +11,8 @@
       "other": 96,
       "test_assertion": 103
     },
-    "draft_labels_in_test": 284,
-    "labels_sha256": "cd7a7ba744175486",
+    "draft_labels_in_test": 0,
+    "labels_sha256": "13813d6217e55d27",
     "split_created_at": "2026-09-14T10:32:49+00:00"
   },
   "config": {
@@ -61,6 +61,9 @@
       "test_fraction": 0.3,
       "seed": 42
     },
+    "evaluation": {
+      "bootstrap_samples": 1000
+    },
     "tfidf": {
       "abstain_below": 0.4
     },
@@ -87,6 +90,99 @@
     "median_latency_s": 4.46,
     "unparseable": 8
   },
+  "significance": {
+    "bootstrap_samples": 1000,
+    "intervals": [
+      {
+        "method": "rules",
+        "samples": 291,
+        "accuracy": 0.29553264604810997,
+        "accuracy_low": 0.18829703689811994,
+        "accuracy_high": 0.4150326797385621,
+        "macro_f1": 0.3677460883343236,
+        "macro_f1_low": 0.18993459330876908,
+        "macro_f1_high": 0.462644606623137
+      },
+      {
+        "method": "tfidf",
+        "samples": 291,
+        "accuracy": 0.2268041237113402,
+        "accuracy_low": 0.11147124853308846,
+        "accuracy_high": 0.34447126682332824,
+        "macro_f1": 0.16130628401781297,
+        "macro_f1_low": 0.09873414148797922,
+        "macro_f1_high": 0.2172465627262246
+      },
+      {
+        "method": "llm",
+        "samples": 291,
+        "accuracy": 0.7079037800687286,
+        "accuracy_low": 0.5946969696969697,
+        "accuracy_high": 0.8013937282229965,
+        "macro_f1": 0.6693784491679556,
+        "macro_f1_low": 0.5016975585589346,
+        "macro_f1_high": 0.7620374579459596
+      }
+    ],
+    "pairs": [
+      {
+        "a": "rules",
+        "b": "tfidf",
+        "samples": 291,
+        "a_only": 64,
+        "b_only": 44,
+        "p_value": 0.06701041475229508
+      },
+      {
+        "a": "rules",
+        "b": "llm",
+        "samples": 291,
+        "a_only": 17,
+        "b_only": 137,
+        "p_value": 1.7287186860480657e-24
+      },
+      {
+        "a": "tfidf",
+        "b": "llm",
+        "samples": 291,
+        "a_only": 20,
+        "b_only": 160,
+        "p_value": 2.6070512001217583e-28
+      }
+    ]
+  },
+  "cross_validation": [
+    {
+      "method": "rules",
+      "folds": 5,
+      "scored": 944,
+      "accuracy_mean": 0.2685507681173316,
+      "accuracy_std": 0.03814852151305574,
+      "macro_f1_mean": 0.33043343588636315,
+      "macro_f1_std": 0.033979321584050724,
+      "abstention_mean": 0.5501095189640082
+    },
+    {
+      "method": "tfidf",
+      "folds": 5,
+      "scored": 944,
+      "accuracy_mean": 0.20652775501072718,
+      "accuracy_std": 0.07300853451943094,
+      "macro_f1_mean": 0.1718951528740282,
+      "macro_f1_std": 0.06481038655264644,
+      "abstention_mean": 0.7752505492443573
+    },
+    {
+      "method": "llm",
+      "folds": 5,
+      "scored": 293,
+      "accuracy_mean": 0.7210665307635284,
+      "accuracy_std": 0.0696390490891983,
+      "macro_f1_mean": 0.6235548689747888,
+      "macro_f1_std": 0.07205108153120365,
+      "abstention_mean": 0.08186310847541388
+    }
+  ],
   "methods": {
     "rules": {
       "summary": {
@@ -95,7 +191,7 @@
         "abstention_rate": 0.5429553264604812,
         "accuracy_when_answered": 0.6466165413533834,
         "macro_f1": 0.3677460883343236,
-        "ms_per_sample": 0.6169457045780604
+        "ms_per_sample": 0.5221164949747167
       },
       "per_category": [
         {
@@ -237,7 +333,7 @@
         "abstention_rate": 0.7250859106529209,
         "accuracy_when_answered": 0.825,
         "macro_f1": 0.16130628401781297,
-        "ms_per_sample": 3.7730058418711665
+        "ms_per_sample": 1.1131261168143798
       },
       "per_category": [
         {
@@ -379,7 +475,7 @@
         "abstention_rate": 0.08247422680412375,
         "accuracy_when_answered": 0.7715355805243446,
         "macro_f1": 0.6693784491679556,
-        "ms_per_sample": 0.012307903886199817
+        "ms_per_sample": 0.004312714811452885
       },
       "per_category": [
         {

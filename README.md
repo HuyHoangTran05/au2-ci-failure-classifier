@@ -83,7 +83,9 @@ pytest
 python -m ci_classifier llm-run
 
 # 6. Chấm điểm trên tập test -> results/<thời gian>/report.md, metrics.json, predictions.csv
+#    Báo cáo có khoảng tin cậy 95% (bootstrap theo nhóm) và kiểm định McNemar giữa các phương pháp.
 python -m ci_classifier evaluate
+python -m ci_classifier evaluate --cv 5    # thêm cross-validation 5 lần theo nhóm -> cv_folds.csv
 
 # 7. Đo triage time: người phân loại có/không có gợi ý (tốt nhất nhờ người KHÔNG gán nhãn làm)
 python -m ci_classifier triage --participant <tên> --count 20
@@ -124,37 +126,51 @@ Mỗi nhãn trong `data/labels.jsonl` có trường `labeler`:
   Nếu nhãn nháp được kiểm tra bên ngoài công cụ, `label --accept-drafts <tên>` ghi nhận toàn bộ với
   `note` = `reviewed: bulk accepted by <tên>`, để vẫn phân biệt được với duyệt từng mẫu.
 
-Báo cáo `evaluate` ghi rõ số nhãn nháp trong tập test. Nhãn nháp do một LLM viết, nên khi so sánh
+Báo cáo `evaluate` cảnh báo nếu tập test còn nhãn nháp. Nhãn nháp do một LLM viết, nên khi so sánh
 với phương pháp LLM, kết quả có thể bị thiên vị: hãy duyệt hết nhãn của tập test trước khi báo cáo.
 
 Tóm tắt pain point và câu hỏi cho mentor: [`docs/pain-points.html`](docs/pain-points.html).
 
-## Kết quả hiện tại (14/09/2026, nhãn nháp)
+## Kết quả hiện tại (15/09/2026)
 
-Dữ liệu: 944 mẫu có nhãn (194 GitHub Actions, 750 LogChunks). Chia theo (repo, workflow), phân tầng theo
-(nguồn, loại lỗi): 653 train / 291 test. Báo cáo đầy đủ nằm trong `results/`.
+Dữ liệu: 944 mẫu có nhãn (194 GitHub Actions, 750 LogChunks), toàn bộ đã được người duyệt (nhãn nháp do Claude gán,
+HuyHoangTran kiểm tra và giữ nguyên). Chia theo (repo, workflow), phân tầng theo (nguồn, loại lỗi): 653 train / 291 test.
+Báo cáo đầy đủ nằm trong `results/`.
 
-| Phương pháp | Accuracy | Abstention (unknown) | Accuracy khi trả lời | Macro F1 |
+**Tập test cố định (291 mẫu)**, khoảng tin cậy 95% bằng bootstrap theo nhóm workflow:
+
+| Phương pháp | Accuracy [95% CI] | Macro F1 [95% CI] | Abstention (unknown) | Accuracy khi trả lời |
 | --- | --- | --- | --- | --- |
-| Luật từ khóa | 0.30 | 0.54 | 0.65 | 0.37 |
-| TF-IDF + logistic regression | 0.23 | 0.73 | 0.83 | 0.16 |
-| LLM `nvidia/nemotron-3-super-120b-a12b:free` (prompt v1) | **0.71** | 0.08 | 0.77 | **0.67** |
+| Luật từ khóa | 0.30 [0.19, 0.42] | 0.37 [0.19, 0.46] | 0.54 | 0.65 |
+| TF-IDF + logistic regression | 0.23 [0.11, 0.34] | 0.16 [0.10, 0.22] | 0.73 | 0.83 |
+| LLM `nvidia/nemotron-3-super-120b-a12b:free` (prompt v1) | **0.71** [0.59, 0.80] | **0.67** [0.50, 0.76] | 0.08 | 0.77 |
 
-LLM: trung bình khoảng 1.5k token prompt + 300 token trả lời mỗi mẫu, độ trễ trung vị 4.5 giây, chi phí 0 USD
-(model miễn phí). 8/291 câu trả lời không đọc được JSON. Loại yếu nhất là `infrastructure` (F1 0.39): model hay nhầm
-với `test_assertion`. ⚠️ Nhãn test do Claude (một LLM khác) gán nháp, nên điểm LLM có thể bị **thiên vị lên**.
+**Kiểm định McNemar** (cùng 291 mẫu): LLM hơn luật từ khóa (p ≈ 2e-24) và hơn TF-IDF (p ≈ 3e-28) có ý nghĩa thống kê.
+Luật và TF-IDF **chưa khác nhau có ý nghĩa** (p = 0.067).
+
+**Cross-validation 5 lần theo nhóm** trên toàn bộ 944 mẫu (mean ± sd):
+
+| Phương pháp | Accuracy | Macro F1 | Abstention |
+| --- | --- | --- | --- |
+| Luật từ khóa | 0.27 ± 0.04 | 0.33 ± 0.03 | 0.55 |
+| TF-IDF | 0.21 ± 0.07 | 0.17 ± 0.07 | 0.78 |
+| LLM (chỉ 293 mẫu đã có câu trả lời) | 0.72 ± 0.07 | 0.62 ± 0.07 | 0.08 |
+
+Cách đọc:
+- Khoảng tin cậy **rộng** (khoảng ±0.1) vì tập test chỉ có khoảng 39 nhóm workflow: cần thêm dữ liệu để kết luận chi tiết.
+- Cross-validation cho kết quả gần với tập test cố định, nên thứ hạng LLM > luật > TF-IDF là ổn định.
+- LLM: khoảng 1.5k token prompt + 300 token trả lời mỗi mẫu, độ trễ trung vị 4.5 giây, chi phí 0 USD. 8/291 câu trả
+  lời không đọc được JSON. Loại yếu nhất là `infrastructure` (F1 0.39), hay nhầm với `test_assertion`.
+- ⚠️ Nhãn ban đầu do một LLM (Claude) gán rồi người duyệt giữ nguyên. Duyệt khi đã thấy nhãn nháp dễ bị ảnh hưởng
+  theo nhãn đó, nên điểm LLM vẫn có thể hơi cao. Nên nhờ một người thứ hai gán mù khoảng 50 mẫu để đo Cohen's kappa.
 
 Mẫu `authentication` rất hiếm nên đã được bổ sung bằng tìm kiếm có mục tiêu:
 `fetch --workflow-filter ... --require <regex lỗi xác thực> --tag targeted-auth`. Trong 38 log khớp từ khóa, chỉ 12 log
 là lỗi xác thực thật. Các mẫu này mang `retrieval: targeted-auth` và được báo cáo tách riêng, vì được chọn bằng từ khóa
 nên luật từ khóa đạt điểm cao bất thường trên chúng. Kết quả trên **không so được** với lần chấm trước vì tập test đã đổi.
 
-Cách đọc:
-- Cả hai phương pháp **đúng khá cao khi chịu trả lời**, nhưng **từ chối phần lớn** mẫu. Luật chưa có mẫu cho
-  `other` và `infrastructure`; TF-IDF với ngưỡng 0.4 quá thận trọng khi có ít dữ liệu.
-- Hướng cải thiện tiếp theo (chỉ nhìn tập train): thêm luật cho lint, link checker, docs build, lỗi mạng;
-  thử ngưỡng TF-IDF bằng cross-validation trên train.
-- ⚠️ 284/291 nhãn test vẫn là **nháp của Claude**. Hãy duyệt (`label --review`) trước khi dùng các con số này để báo cáo.
+Hướng cải thiện tiếp theo: cắt log tốt hơn (so với lần chạy thành công gần nhất), bộ phân loại lai luật → LLM,
+và thêm luật cho lint, link checker, docs build, lỗi mạng (chỉ nhìn tập train).
 
 ## Nguyên tắc để kết quả đáng tin
 
@@ -184,6 +200,8 @@ ci_classifier/
   classify.py               phân loại một log đã lưu + runbook
   triage.py                 đo thời gian triage của người -> data/triage_sessions.jsonl
   evaluate.py               metrics bằng pandas, báo cáo bằng Jinja2
+  stats.py                  khoảng tin cậy bootstrap theo nhóm, kiểm định McNemar
+  crossval.py               cross-validation theo nhóm, phân tầng theo (nguồn, loại lỗi)
   templates/report.md.j2    mẫu báo cáo
 docs/labeling-guide.md      định nghĩa nhãn và quy tắc khi phân vân
 docs/runbooks/              runbook mẫu cho từng loại lỗi
