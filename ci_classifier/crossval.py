@@ -2,7 +2,8 @@
 
 Each fold keeps whole (repo, workflow) groups together (as `split` does) and balances (source, label).
 Keyword rules need no training; TF-IDF is refitted on the other folds; the LLM needs no training and is scored
-from stored answers only, so in each fold it covers just the samples already sent to the API.
+from stored answers only, so in each fold it covers just the samples already sent to the API. The hybrid (LLM,
+then TF-IDF when the LLM abstains) covers the same samples as the LLM.
 """
 
 from __future__ import annotations
@@ -14,7 +15,7 @@ import pandas as pd
 from sklearn.model_selection import StratifiedGroupKFold
 
 from . import llm, rules, stats
-from .common import read_excerpt
+from .common import UNKNOWN, read_excerpt
 from .split import group_of
 from .tfidf import TfidfClassifier
 
@@ -44,10 +45,14 @@ def cross_validate(sample_ids: list[str], labels: dict[str, dict], manifest: dic
 
         model = TfidfClassifier(config["tfidf"]["abstain_below"])
         model.fit([excerpts[sample_ids[i]] for i in train_idx], list(y[train_idx]))
+        tfidf = [category for category, _ in model.predict(texts)]
+        llm_answers = [(answer[0] if answer else None) for answer in map(llm_predict, texts)]
         predictions = {
             "rules": [rules.classify(text)[0] for text in texts],
-            "tfidf": [category for category, _ in model.predict(texts)],
-            "llm": [(answer[0] if answer else None) for answer in map(llm_predict, texts)],
+            "tfidf": tfidf,
+            "llm": llm_answers,
+            # Same rule as methods.with_fallback: TF-IDF answers only where the LLM said unknown.
+            "hybrid": [backup if answer == UNKNOWN else answer for answer, backup in zip(llm_answers, tfidf)],
         }
         for method, predicted in predictions.items():
             scored = np.array([p is not None for p in predicted])

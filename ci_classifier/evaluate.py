@@ -31,7 +31,7 @@ from .split import group_of
 
 SMALL_TEST_SET = 30
 TITLES = {"rules": "Baseline 1 - keyword rules", "tfidf": "Baseline 2 - TF-IDF + logistic regression",
-          "llm": "Method 3 - LLM (OpenRouter)"}
+          "llm": "Method 3 - LLM (OpenRouter)", "hybrid": "Method 4 - hybrid (LLM, TF-IDF when the LLM abstains)"}
 CONDITIONS = {"A": "A - log only", "B": "B - log + classifier hint"}
 
 
