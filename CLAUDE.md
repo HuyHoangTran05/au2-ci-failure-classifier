@@ -25,6 +25,8 @@ và không gửi log nội bộ lên LLM bên ngoài khi chưa có mentor đồn
 .\.venv\Scripts\python.exe -m ci_classifier                   # danh sách lệnh
 .\.venv\Scripts\python.exe -m ci_classifier fetch             # tải log run fail (gh)
 .\.venv\Scripts\python.exe -m ci_classifier excerpt [--force] # cắt log -> data/excerpts/
+.\.venv\Scripts\python.exe -m ci_classifier excerpt-eval      # độ phủ đoạn lỗi LogChunks (--set key=value để thử)
+.\.venv\Scripts\python.exe -m ci_classifier fetch-baselines --labelled-only --workers 4
 .\.venv\Scripts\python.exe -m ci_classifier label --review    # duyệt nhãn nháp
 .\.venv\Scripts\python.exe -m ci_classifier llm-run --limit 40
 .\.venv\Scripts\python.exe -m ci_classifier evaluate --cv 5   # báo cáo -> results/<thời gian>/
@@ -52,6 +54,8 @@ và không gửi log nội bộ lên LLM bên ngoài khi chưa có mentor đồn
 - `labels.jsonl` có `labeler` (`human` / `claude-draft`); giữ nguyên nguồn gốc nhãn khi báo cáo.
 - `data/raw/`, `data/excerpts/`, `data/external/` tái tạo được và bị gitignore. `manifest`, `labels`, `split`,
   `llm_predictions` là công sức thật, phải commit.
+- Profile cắt log: `CI_EXCERPT_PROFILE=<tên>` áp `[excerpt.profiles.<tên>]` và đọc/ghi `data/excerpts-<tên>/`;
+  `evaluate` gắn tên profile (và `--source`) vào thư mục kết quả. Nhớ xoá biến môi trường sau khi dùng.
 - LLM: câu trả lời lưu theo (model, `PROMPT_VERSION`, mã băm đoạn cắt). Đổi prompt thì tăng `PROMPT_VERSION`;
   đổi cách cắt log thì câu trả lời cũ không còn khớp và phải chạy lại `llm-run`.
 

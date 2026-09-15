@@ -146,7 +146,8 @@ TF-IDF dao động mạnh nhất (0.11 đến 0.28): mô hình học từ ít d�
 - Nhãn gốc do LLM gán, duyệt khi đã thấy nhãn nháp; chưa có mức đồng thuận giữa hai người.
 - LLM trong cross-validation chỉ phủ khoảng 31% số mẫu.
 - Cả 3 phương pháp chỉ thấy đoạn log đã cắt; bước cắt bỏ sót nguyên nhân thì mọi phương pháp đều sai
-  (chỉ 41% đoạn cắt LogChunks chứa đủ đoạn lỗi được đánh dấu).
+  (lúc viết báo cáo đo được 41%; sau khi sửa cách đo ở bước 4, con số đúng là 56% - xem
+  `2026-09-15-excerpt-improvement.md`).
 
 ## Việc tiếp theo
 

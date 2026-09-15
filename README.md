@@ -66,6 +66,10 @@ python -m ci_classifier excerpt
 
 # 2b. (Tuỳ chọn) Thêm 797 log Travis CI từ bộ LogChunks, đã có sẵn đoạn lỗi do con người đánh dấu
 python -m ci_classifier import-logchunks
+python -m ci_classifier excerpt-eval                    # đo đoạn cắt giữ được bao nhiêu đoạn lỗi đã đánh dấu
+
+# 2c. (Tuỳ chọn) Tải run thành công gần nhất cho profile cắt log "diff"
+python -m ci_classifier fetch-baselines --labelled-only --workers 4
 
 # 3. Gán nhãn bằng tay (đọc docs/labeling-guide.md trước). Mục tiêu: 200-300 mẫu GitHub Actions.
 python -m ci_classifier label --source logchunks       # nhanh: chỉ cần đọc đoạn lỗi đã đánh dấu
@@ -115,8 +119,16 @@ Các dataset khác đã xem nhưng không dùng:
 - [GHALogs](https://doi.org/10.5281/zenodo.10154920): 142 GB, không có nhãn.
 - Java Travis MSR'17: nhãn sinh tự động bằng regex, không dùng làm đáp án được.
 
-Chất lượng bước `excerpt` trên LogChunks (đoạn lỗi đã đánh dấu có nằm trọn trong đoạn cắt không):
-329/797 log, độ phủ dòng trung bình 55%. Đây là chỗ còn cải thiện được.
+Chất lượng bước `excerpt` trên LogChunks (đoạn lỗi đã đánh dấu có nằm trọn trong đoạn cắt không), đo bằng
+`excerpt-eval`: 446/797 log (56%), độ phủ dòng trung bình 68%. Nguyên nhân bỏ sót chính là đoạn lỗi nằm xa dấu lỗi.
+
+### Profile cắt log
+
+`config.toml [excerpt.profiles.<tên>]` định nghĩa các cách cắt thử nghiệm; chọn bằng biến môi trường `CI_EXCERPT_PROFILE`
+(mọi lệnh đều đọc biến này, đoạn cắt lưu riêng vào `data/excerpts-<tên>/`):
+- `wide80`: cửa sổ 80 dòng trước dấu lỗi.
+- `diff`: bỏ các dòng cũng có trong run thành công gần nhất (cần `fetch-baselines` trước).
+- `hints`: chọn cụm dòng có từ khoá lỗi (kết quả kém hơn mặc định, chỉ để tham khảo).
 
 ### Nhãn nháp
 
@@ -131,6 +143,7 @@ với phương pháp LLM, kết quả có thể bị thiên vị: hãy duyệt h
 
 Tóm tắt pain point và câu hỏi cho mentor: [`docs/pain-points.html`](docs/pain-points.html).
 Báo cáo duyệt nhãn và kiểm định thống kê: [`docs/reports/2026-09-15-label-review-and-statistics.md`](docs/reports/2026-09-15-label-review-and-statistics.md).
+Báo cáo cải thiện bước cắt log: [`docs/reports/2026-09-15-excerpt-improvement.md`](docs/reports/2026-09-15-excerpt-improvement.md).
 
 ## Kết quả hiện tại (15/09/2026)
 
@@ -191,7 +204,9 @@ ci_classifier/
   __main__.py               CLI: python -m ci_classifier <lệnh>
   fetch.py                  tải log bằng gh -> data/raw/*.log.gz + data/manifest.jsonl
   logchunks.py              nhập bộ LogChunks (tải từ Zenodo, kiểm tra checksum)
-  excerpt.py                cắt log -> data/excerpts/*.txt
+  excerpt.py                cắt log -> data/excerpts/*.txt (chiến lược marker / hints / baseline-diff)
+  excerpt_eval.py           đo độ phủ đoạn lỗi LogChunks và lý do bỏ sót
+  baselines.py              tải run thành công gần nhất -> data/baselines/, data/baselines.jsonl
   label.py                  công cụ gán nhãn -> data/labels.jsonl
   split.py                  chia train/test -> data/split.json
   rules.py                  baseline 1: luật regex
