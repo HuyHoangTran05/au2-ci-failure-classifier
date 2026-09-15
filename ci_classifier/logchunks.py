@@ -24,7 +24,8 @@ import xml.etree.ElementTree as ET
 import zipfile
 from pathlib import Path
 
-from .common import DATA, EXCERPT_DIR, RAW_DIR, append_manifest, excerpt_path, load_config, now_iso, raw_path, read_manifest
+from .common import (DATA, RAW_DIR, append_manifest, excerpt_dir, excerpt_path, excerpt_settings, load_config, now_iso,
+                     raw_path, read_manifest)
 from .excerpt import build_excerpt, clean_line
 
 SOURCE = "logchunks"
@@ -102,10 +103,10 @@ def main(argv: list[str] | None = None) -> None:
     if actual_md5 != ZIP_MD5:
         raise SystemExit(f"Checksum mismatch for {args.zip}: {actual_md5} != {ZIP_MD5}. Delete it and retry.")
 
-    cfg = load_config()["excerpt"]
+    cfg = excerpt_settings(load_config())
     manifest = read_manifest()
     RAW_DIR.mkdir(parents=True, exist_ok=True)
-    EXCERPT_DIR.mkdir(parents=True, exist_ok=True)
+    excerpt_dir().mkdir(parents=True, exist_ok=True)
     imported = skipped = 0
     coverage: list[float] = []
 

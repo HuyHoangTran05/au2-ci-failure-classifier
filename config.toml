@@ -38,12 +38,27 @@ scan_limit = 300        # số run fail gần nhất được quét để chọn
 timeout_seconds = 180   # thời gian chờ tối đa cho mỗi lệnh gh
 
 [excerpt]
-context_before_error = 40       # số dòng lấy trước mỗi dấu ##[error]
+strategy = "marker"             # "marker": cửa sổ trước dấu lỗi; "hints": các cụm dòng có dấu hiệu lỗi
+context_before_error = 40       # (marker) số dòng lấy trước mỗi dấu ##[error]
+hint_budget = 40                # (hints) số dòng tối đa giữ lại mỗi job
+hint_gap = 3                    # (hints) hai dòng lỗi cách nhau <= N dòng thì gộp thành một cụm
+hint_padding = 3                # (hints) số dòng ngữ cảnh thêm trước/sau mỗi cụm
+hint_key_weight = 3             # (hints) điểm cộng cho dòng khớp mẫu lỗi rõ ràng (KEY_LINE)
+hint_recency_weight = 2         # (hints) điểm cộng cho cụm nằm gần cuối log
+hint_anchor_lines = 5           # (hints) luôn giữ N dòng cuối trước dấu lỗi cuối cùng
 tail_lines_without_marker = 40  # nếu job không có ##[error] thì lấy N dòng cuối
 max_key_lines = 15              # số dòng "đáng chú ý" tối đa lấy từ toàn bộ job
 max_lines_per_job = 120
 max_total_lines = 300
 max_line_chars = 400
+
+# Profile cắt log thử nghiệm: CI_EXCERPT_PROFILE=<tên> dùng các giá trị ghi đè dưới đây, lưu đoạn cắt vào data/excerpts-<tên>/.
+[excerpt.profiles.wide80]
+context_before_error = 80       # cửa sổ rộng gấp đôi trước dấu lỗi
+
+[excerpt.profiles.hints]
+strategy = "hints"              # thử nghiệm: kém hơn "marker" trên train (xem docs/reports)
+hint_anchor_lines = 30
 
 [split]
 test_fraction = 0.3

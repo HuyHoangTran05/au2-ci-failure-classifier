@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import tomllib
 from datetime import datetime, timezone
 from pathlib import Path
@@ -42,8 +43,34 @@ def raw_path(sample_id: str) -> Path:
     return RAW_DIR / f"{sample_id}.log.gz"
 
 
+DEFAULT_PROFILE = "default"
+
+
+def excerpt_profile() -> str:
+    """Active excerpt profile, chosen with the CI_EXCERPT_PROFILE environment variable."""
+    return os.environ.get("CI_EXCERPT_PROFILE", DEFAULT_PROFILE).strip() or DEFAULT_PROFILE
+
+
+def excerpt_settings(config: dict, profile: str | None = None) -> dict:
+    """[excerpt] settings with the named profile's overrides ([excerpt.profiles.<name>]) applied."""
+    profile = profile or excerpt_profile()
+    settings = {k: v for k, v in config["excerpt"].items() if k != "profiles"}
+    if profile != DEFAULT_PROFILE:
+        profiles = config["excerpt"].get("profiles", {})
+        if profile not in profiles:
+            raise SystemExit(f"Unknown excerpt profile {profile!r}; defined: {', '.join(profiles) or 'none'}")
+        settings.update(profiles[profile])
+    return settings
+
+
+def excerpt_dir(profile: str | None = None) -> Path:
+    """Each profile keeps its own excerpts, so profiles can be compared without overwriting each other."""
+    profile = profile or excerpt_profile()
+    return EXCERPT_DIR if profile == DEFAULT_PROFILE else DATA / f"excerpts-{profile}"
+
+
 def excerpt_path(sample_id: str) -> Path:
-    return EXCERPT_DIR / f"{sample_id}.txt"
+    return excerpt_dir() / f"{sample_id}.txt"
 
 
 def read_excerpt(sample_id: str) -> str:

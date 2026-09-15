@@ -22,7 +22,8 @@ from pathlib import Path
 import pandas as pd
 from jinja2 import Environment, FileSystemLoader
 
-from .common import (DRAFT_LABELER, LABELS, RESULTS, TRIAGE_LOG, UNKNOWN, load_config, now_iso, read_excerpt, read_jsonl,
+from .common import (DRAFT_LABELER, LABELS, RESULTS, TRIAGE_LOG, UNKNOWN, excerpt_profile, load_config, now_iso,
+                     read_excerpt, read_jsonl,
                      read_labels, read_manifest, read_split)
 from . import crossval, llm, stats
 from .methods import METHODS, build_predictor
@@ -233,10 +234,12 @@ def main(argv: list[str] | None = None) -> None:
         "draft_labels_in_test": sum(labels[sid].get("labeler") == DRAFT_LABELER for sid in test_ids),
         "labels_sha256": hashlib.sha256(LABELS.read_bytes()).hexdigest()[:16],
         "split_created_at": split["created_at"],
+        "excerpt_profile": excerpt_profile(),
     }
     triage = triage_summary(read_jsonl(TRIAGE_LOG))
 
-    out_dir = RESULTS / datetime.now().strftime("%Y%m%d-%H%M%S")
+    suffix = "" if excerpt_profile() == "default" else f"-{excerpt_profile()}"
+    out_dir = RESULTS / (datetime.now().strftime("%Y%m%d-%H%M%S") + suffix)
     out_dir.mkdir(parents=True)
     predictions.to_csv(out_dir / "predictions.csv", index=False)
     llm_cost = llm_usage(test_ids, texts, config) if "llm" in results else None

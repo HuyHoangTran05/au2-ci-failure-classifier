@@ -17,7 +17,8 @@ import subprocess
 import time
 from collections import Counter
 
-from .common import RAW_DIR, append_manifest, load_config, now_iso, raw_path, read_manifest, sample_id_for
+from .common import (RAW_DIR, append_manifest, excerpt_settings, load_config, now_iso, raw_path, read_manifest,
+                     sample_id_for)
 from .excerpt import build_excerpt
 
 RUN_FIELDS = "databaseId,workflowName,event,headBranch,headSha,createdAt,url,displayTitle"
@@ -140,7 +141,8 @@ def main(argv: list[str] | None = None) -> None:
                 record.update(status="error", error=error)
                 totals["errors"] += 1
                 print(f"  {index}/{len(selected)} {sample_id}: ERROR {error[:120]}")
-            elif require and not require.search(build_excerpt(log.decode("utf-8", "replace"), full_config["excerpt"])):
+            elif require and not require.search(build_excerpt(log.decode("utf-8", "replace"),
+                                                              excerpt_settings(full_config))):
                 # Only the verdict is kept, so the run is not downloaded again next time.
                 record.update(status="filtered_out", raw_bytes=len(log))
                 totals["filtered_out"] += 1

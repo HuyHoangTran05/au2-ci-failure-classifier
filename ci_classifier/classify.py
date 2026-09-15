@@ -15,7 +15,7 @@ import gzip
 import json
 from pathlib import Path
 
-from .common import load_config, read_labels, read_split, runbook_for
+from .common import excerpt_settings, load_config, read_labels, read_split, runbook_for
 from .excerpt import build_excerpt
 from .methods import METHODS, build_predictor
 
@@ -39,7 +39,7 @@ def main(argv: list[str] | None = None) -> None:
     config = load_config()
     try:
         predict = build_predictor(args.method, config, read_labels(), read_split(), live=True)
-        excerpt = build_excerpt(load_log(args.log), config["excerpt"])
+        excerpt = build_excerpt(load_log(args.log), excerpt_settings(config))
         category, detail = predict(excerpt)
     except ValueError as exc:
         raise SystemExit(f"error: {exc}")

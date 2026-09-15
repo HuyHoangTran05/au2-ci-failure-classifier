@@ -2,6 +2,7 @@
 
 - Created: {{ run.created_at }}
 - Train / test samples: {{ run.train_samples }} / {{ run.test_samples }}
+- Excerpt profile: `{{ run.excerpt_profile }}`
 - Test labels: {% for name, count in run.test_label_counts.items() %}{{ name }}={{ count }}{{ ", " if not loop.last }}{% endfor %}
 
 - labels.jsonl sha256 (first 16): `{{ run.labels_sha256 }}`; split created {{ run.split_created_at }}

@@ -3,6 +3,9 @@
 Usage:
     python -m ci_classifier excerpt          # only samples without an excerpt
     python -m ci_classifier excerpt --force  # rebuild all (after changing [excerpt] settings)
+
+Set CI_EXCERPT_PROFILE=<name> to build a profile from [excerpt.profiles.<name>] into data/excerpts-<name>/;
+every other command (evaluate, llm-run, classify...) reads the same variable.
 """
 
 from __future__ import annotations
@@ -11,7 +14,7 @@ import argparse
 import gzip
 import re
 
-from .common import EXCERPT_DIR, excerpt_path, load_config, raw_path, read_manifest
+from .common import excerpt_dir, excerpt_path, excerpt_profile, excerpt_settings, load_config, raw_path, read_manifest
 
 ANSI = re.compile(r"(?:\x1b|\^\[)\[[0-9;?]*[A-Za-z]")
 TIMESTAMP = re.compile(r"^\ufeff?\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z ?")
@@ -27,6 +30,14 @@ KEY_LINE = re.compile(
     r"|Traceback \(most recent call last\)|\b\w+(?:Error|Exception):|Build FAILED|\bFAILED\b|--- FAIL:"
     r"|Unauthori[sz]ed|Forbidden|Bad credentials|No space left|rate limit|timed out",
 )
+# Words that often appear on lines describing a failure; used by the "hints" strategy to find candidate blocks.
+ERROR_HINT = re.compile(
+    r"(?i)\berrors?\b|\bfail(?:ed|ure|ures|ing|s)?\b|exception|traceback|assert|\bexpected\b|not found"
+    r"|no such file|denied|forbidden|unauthori[sz]ed|\bcannot\b|can't|could not|couldn't|unable to|\bfatal\b"
+    r"|\bpanic|segmentation fault|timed? ?out|refused|undefined|not defined|\bmissing\b|\binvalid\b|violation"
+    r"|\baborted?\b|\bkilled\b|mismatch|\bconflict|dubious|✖|✗|ERR!"
+)
+STRATEGIES = ("marker", "hints")
 UNKNOWN_JOB = "(unknown job)"
 PLAIN_JOB = "log"
 
@@ -96,12 +107,57 @@ def job_excerpt(lines: list[str], cfg: dict) -> list[str]:
     return [*out, "-- context --", *context[-budget:]]
 
 
+def hint_excerpt(lines: list[str], cfg: dict) -> list[str]:
+    """Keep the highest-scoring blocks of failure-looking lines, up to `hint_budget` lines per job.
+
+    Hint lines closer than `hint_gap` merge into one block. A block scores one point per hint line, extra points
+    per KEY_LINE match, and a recency bonus (failures are usually reported near the end). The last error marker
+    (or the log tail) is always kept, since it names the failing step.
+    """
+    width, budget = cfg["max_line_chars"], cfg["hint_budget"]
+    gap, pad = cfg["hint_gap"], cfg["hint_padding"]
+    n = len(lines)
+    if n == 0:
+        return ["-- context --"]
+
+    blocks: list[list[int]] = []
+    for i, text in enumerate(lines):
+        if ERROR_HINT.search(text) and not ERROR_MARKER.search(text):
+            if blocks and i - blocks[-1][-1] <= gap:
+                blocks[-1].append(i)
+            else:
+                blocks.append([i])
+
+    def score(block: list[int]) -> float:
+        keys = sum(bool(KEY_LINE.search(lines[i])) for i in block)
+        return len(block) + cfg["hint_key_weight"] * keys + cfg["hint_recency_weight"] * block[-1] / n
+
+    markers = [i for i, text in enumerate(lines) if ERROR_MARKER.search(text)]
+    anchor = markers[-1] if markers else n - 1
+    keep: set[int] = set(range(max(0, anchor - cfg["hint_anchor_lines"] + 1), anchor + 1))
+    for block in sorted(blocks, key=score, reverse=True):
+        rows = range(max(0, block[0] - pad), min(n, block[-1] + pad + 1))
+        if len(keep | set(rows)) > budget:
+            continue
+        keep.update(rows)
+
+    out = ["-- context --"]
+    previous = None
+    for i in sorted(keep):
+        if previous is not None and i != previous + 1:
+            out.append("[...]")
+        out.append(lines[i][:width])
+        previous = i
+    return out
+
+
 def build_excerpt(raw_text: str, cfg: dict) -> str:
     jobs = parse_jobs(raw_text)
+    select = hint_excerpt if cfg.get("strategy", "marker") == "hints" else job_excerpt
     out: list[str] = []
     omitted: list[str] = []
     for job, lines in jobs.items():
-        section = [f"## job: {job}", *job_excerpt(lines, cfg)]
+        section = [f"## job: {job}", *select(lines, cfg)]
         if out and len(out) + len(section) > cfg["max_total_lines"]:
             omitted.append(job)
             continue
@@ -117,8 +173,9 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--force", action="store_true", help="rebuild excerpts that already exist")
     args = parser.parse_args(argv)
 
-    cfg = load_config()["excerpt"]
-    EXCERPT_DIR.mkdir(parents=True, exist_ok=True)
+    cfg = excerpt_settings(load_config())
+    excerpt_dir().mkdir(parents=True, exist_ok=True)
+    print(f"Excerpt profile: {excerpt_profile()} -> {excerpt_dir()}")
     built = skipped = 0
     for sample_id, record in read_manifest().items():
         if record.get("status") != "ok" or not raw_path(sample_id).exists():

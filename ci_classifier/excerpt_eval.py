@@ -8,7 +8,8 @@ Misses get a diagnosed reason. Results are split by train/test so a strategy can
 
 Usage:
     python -m ci_classifier excerpt-eval
-    python -m ci_classifier excerpt-eval --strategy marker --context-before 120
+    python -m ci_classifier excerpt-eval --set context_before_error=120
+    python -m ci_classifier excerpt-eval --set strategy=hints --set hint_budget=80
 """
 
 from __future__ import annotations
@@ -19,7 +20,7 @@ from collections import Counter
 
 import pandas as pd
 
-from .common import load_config, raw_path, read_manifest, read_split
+from .common import excerpt_profile, excerpt_settings, load_config, raw_path, read_manifest, read_split
 from .excerpt import ERROR_MARKER, build_excerpt, parse_jobs
 from .logchunks import normalize_line
 
@@ -86,15 +87,17 @@ def main(argv: list[str] | None = None) -> None:
     config = load_config()
     parser = argparse.ArgumentParser(prog="python -m ci_classifier excerpt-eval", description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--context-before", type=int, help="override [excerpt] context_before_error")
-    parser.add_argument("--max-lines-per-job", type=int, help="override [excerpt] max_lines_per_job")
+    parser.add_argument("--set", action="append", default=[], metavar="KEY=VALUE",
+                        help="override an [excerpt] setting, e.g. --set strategy=hints --set hint_budget=80")
     args = parser.parse_args(argv)
 
-    cfg = dict(config["excerpt"])
-    if args.context_before is not None:
-        cfg["context_before_error"] = args.context_before
-    if args.max_lines_per_job is not None:
-        cfg["max_lines_per_job"] = args.max_lines_per_job
+    cfg = excerpt_settings(config)
+    for item in args.set:
+        key, _, value = item.partition("=")
+        if key not in cfg:
+            parser.error(f"unknown [excerpt] setting {key!r}")
+        cfg[key] = value if isinstance(cfg[key], str) else type(cfg[key])(value)
+    print(f"profile: {excerpt_profile()}; overrides: {', '.join(args.set) or 'none'}")
 
     df = evaluate_excerpts(cfg)
     print(summarize(df).round(3).to_string())
