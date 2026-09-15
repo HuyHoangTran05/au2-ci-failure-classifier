@@ -229,13 +229,14 @@ Build FAILED.
         </thead>
         <tbody>
           <tr><td>Luật từ khóa (regex)</td><td class="n">0.30</td><td class="n">54%</td><td class="n">65%</td><td class="n">0.37</td></tr>
-          <tr><td>TF-IDF + logistic regression</td><td class="n">0.23</td><td class="n">73%</td><td class="n">83%</td><td class="n">0.16</td></tr>
+          <tr><td>TF-IDF + logistic regression (ngưỡng 0.2, chọn trên train)</td><td class="n">0.57</td><td class="n">0%</td><td class="n">57%</td><td class="n">0.29</td></tr>
           <tr><td>LLM (nemotron-3-super, miễn phí)</td><td class="n">0.71</td><td class="n">8%</td><td class="n">77%</td><td class="n">0.67</td></tr>
+          <tr><td>Hybrid: LLM, TF-IDF khi LLM trả unknown</td><td class="n">0.74</td><td class="n">0%</td><td class="n">74%</td><td class="n">0.67</td></tr>
         </tbody>
       </table>
     </div>
     <ul class="points">
-      <li><strong>Luật và TF-IDF đúng khá khi chịu trả lời, nhưng từ chối quá nhiều.</strong> Luật chưa có mẫu cho <code>other</code> và <code>infrastructure</code>; TF-IDF quá thận trọng khi dữ liệu ít.</li>
+      <li><strong>Luật từ chối quá nhiều; TF-IDF từng bị ngưỡng quá cao.</strong> Luật chưa có mẫu cho <code>other</code> và <code>infrastructure</code>. Ngưỡng abstain cũ của TF-IDF (0.4) khiến 73% mẫu bị trả unknown; chọn lại bằng cross-validation trên train (0.2) thì accuracy lên 0.57, nhưng TF-IDF vẫn yếu ở loại hiếm và trên log GitHub Actions (0.32).</li>
       <li><strong>LLM tốt hơn rõ nhưng có thể bị thiên vị lên.</strong> Nhãn test do một LLM khác gán nháp. Loại yếu nhất của LLM là <code>infrastructure</code> (F1 0.39), hay nhầm với <code>test_assertion</code>. Model miễn phí bị giới hạn lượt gọi và đôi khi bị chặn tạm thời.</li>
       <li><strong>Điểm không ổn định.</strong> Chỉ chia lại tập mà accuracy của luật đổi từ 0.24 lên 0.30. Cần cross-validation và báo cáo độ lệch.</li>
       <li><strong>Mẫu lấy có mục tiêu gây thiên vị.</strong> Log authentication được tìm bằng từ khóa, nên luật đạt 0.86 trên nhóm này. Nhóm này được báo cáo tách riêng, không tính là thành tích.</li>

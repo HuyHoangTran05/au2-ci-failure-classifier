@@ -32,7 +32,8 @@ và không gửi log nội bộ lên LLM bên ngoài khi chưa có mentor đồn
 .\.venv\Scripts\python.exe -m ci_classifier label --review    # duyệt nhãn nháp
 .\.venv\Scripts\python.exe -m ci_classifier llm-run --limit 40
 .\.venv\Scripts\python.exe -m ci_classifier evaluate --cv 5   # báo cáo -> results/<thời gian>/
-.\.venv\Scripts\python.exe -m ci_classifier classify job.log --method rules|tfidf|llm
+.\.venv\Scripts\python.exe -m ci_classifier tune-tfidf         # chọn [tfidf] abstain_below bằng CV trên train
+.\.venv\Scripts\python.exe -m ci_classifier classify job.log --method rules|tfidf|llm|hybrid
 ```
 
 ## Cấu trúc
@@ -43,7 +44,8 @@ và không gửi log nội bộ lên LLM bên ngoài khi chưa có mentor đồn
 | `fetch.py`, `logchunks.py` | thu thập log -> `data/raw/*.log.gz`, `data/manifest.jsonl` |
 | `excerpt.py` | cắt log thành đoạn quan trọng; **cả 3 phương pháp chỉ nhìn thấy đoạn cắt** |
 | `label.py`, `split.py` | nhãn (`data/labels.jsonl`), chia train/test theo nhóm (repo, workflow) |
-| `rules.py`, `tfidf.py`, `llm.py`, `methods.py` | 3 bộ phân loại; `build_predictor` là điểm vào chung |
+| `rules.py`, `tfidf.py`, `llm.py`, `methods.py` | 3 bộ phân loại + `hybrid` (LLM, TF-IDF khi LLM trả unknown); `build_predictor` là điểm vào chung |
+| `tune_tfidf.py` | chọn ngưỡng abstain TF-IDF bằng CV trên train (không đọc test) |
 | `evaluate.py`, `stats.py`, `crossval.py` | metrics (pandas), bootstrap CI theo nhóm, McNemar, CV; báo cáo Jinja2 `templates/report.md.j2` |
 | `config.toml` | loại lỗi, runbook, thông số cắt log, split, TF-IDF, LLM, evaluation |
 | `docs/` | hướng dẫn gán nhãn, runbook mẫu, báo cáo, trang pain points |

@@ -83,6 +83,9 @@ python -m ci_classifier split
 python -m ci_classifier rules --split train
 pytest
 
+# 5a. Chọn ngưỡng abstain của TF-IDF bằng cross-validation trên train; chép giá trị vào config.toml [tfidf]
+python -m ci_classifier tune-tfidf
+
 # 5b. Hỏi LLM về các mẫu test (lưu vào data/llm_predictions.jsonl; chạy lại để làm tiếp nếu hết lượt trong ngày)
 python -m ci_classifier llm-run
 
@@ -102,6 +105,7 @@ Phân loại một log bất kỳ (đây là MVP của đề bài):
 gh run view <run-id> -R owner/repo --log-failed > job.log
 python -m ci_classifier classify job.log          # loại lỗi + dòng bằng chứng + runbook
 python -m ci_classifier classify job.log --json   # kết quả dạng JSON cho công cụ khác
+python -m ci_classifier classify job.log --method hybrid   # LLM, TF-IDF trả lời thay khi LLM không chắc
 ```
 
 ## Dữ liệu
@@ -144,6 +148,7 @@ với phương pháp LLM, kết quả có thể bị thiên vị: hãy duyệt h
 Tóm tắt pain point và câu hỏi cho mentor: [`docs/pain-points.html`](docs/pain-points.html).
 Báo cáo duyệt nhãn và kiểm định thống kê: [`docs/reports/2026-09-15-label-review-and-statistics.md`](docs/reports/2026-09-15-label-review-and-statistics.md).
 Báo cáo cải thiện bước cắt log: [`docs/reports/2026-09-15-excerpt-improvement.md`](docs/reports/2026-09-15-excerpt-improvement.md).
+Báo cáo ngưỡng TF-IDF và bộ phân loại lai: [`docs/reports/2026-09-15-tfidf-threshold-and-hybrid.md`](docs/reports/2026-09-15-tfidf-threshold-and-hybrid.md).
 
 ## Kết quả hiện tại (15/09/2026)
 
@@ -151,28 +156,34 @@ Dữ liệu: 944 mẫu có nhãn (194 GitHub Actions, 750 LogChunks), toàn bộ
 HuyHoangTran kiểm tra và giữ nguyên). Chia theo (repo, workflow), phân tầng theo (nguồn, loại lỗi): 653 train / 291 test.
 Báo cáo đầy đủ nằm trong `results/`.
 
-**Tập test cố định (291 mẫu)**, khoảng tin cậy 95% bằng bootstrap theo nhóm workflow:
+**Tập test cố định (291 mẫu)**, khoảng tin cậy 95% bằng bootstrap theo nhóm workflow (`results/20260915-112959/`):
 
 | Phương pháp | Accuracy [95% CI] | Macro F1 [95% CI] | Abstention (unknown) | Accuracy khi trả lời |
 | --- | --- | --- | --- | --- |
 | Luật từ khóa | 0.30 [0.19, 0.42] | 0.37 [0.19, 0.46] | 0.54 | 0.65 |
-| TF-IDF + logistic regression | 0.23 [0.11, 0.34] | 0.16 [0.10, 0.22] | 0.73 | 0.83 |
-| LLM `nvidia/nemotron-3-super-120b-a12b:free` (prompt v1) | **0.71** [0.59, 0.80] | **0.67** [0.50, 0.76] | 0.08 | 0.77 |
+| TF-IDF + logistic regression (ngưỡng 0.2) | 0.57 [0.44, 0.69] | 0.29 [0.22, 0.44] | 0.00 | 0.57 |
+| LLM `nvidia/nemotron-3-super-120b-a12b:free` (prompt v1) | 0.71 [0.59, 0.80] | **0.67** [0.50, 0.76] | 0.08 | 0.77 |
+| Hybrid: LLM, TF-IDF khi LLM trả `unknown` | **0.74** [0.62, 0.83] | **0.67** [0.50, 0.76] | 0.00 | 0.74 |
 
-**Kiểm định McNemar** (cùng 291 mẫu): LLM hơn luật từ khóa (p ≈ 2e-24) và hơn TF-IDF (p ≈ 3e-28) có ý nghĩa thống kê.
-Luật và TF-IDF **chưa khác nhau có ý nghĩa** (p = 0.067).
+**Kiểm định McNemar** (cùng 291 mẫu): LLM hơn TF-IDF (p ≈ 9e-5), TF-IDF hơn luật (p ≈ 2e-12),
+hybrid hơn LLM (đúng thêm 9 mẫu, không sai thêm mẫu nào, p = 0.004).
 
 **Cross-validation 5 lần theo nhóm** trên toàn bộ 944 mẫu (mean ± sd):
 
 | Phương pháp | Accuracy | Macro F1 | Abstention |
 | --- | --- | --- | --- |
 | Luật từ khóa | 0.27 ± 0.04 | 0.33 ± 0.03 | 0.55 |
-| TF-IDF | 0.21 ± 0.07 | 0.17 ± 0.07 | 0.78 |
+| TF-IDF | 0.62 ± 0.07 | 0.42 ± 0.11 | 0.00 |
 | LLM (chỉ 293 mẫu đã có câu trả lời) | 0.72 ± 0.07 | 0.62 ± 0.07 | 0.08 |
+| Hybrid (cùng 293 mẫu) | 0.75 ± 0.06 | 0.60 ± 0.06 | 0.00 |
 
 Cách đọc:
-- Khoảng tin cậy **rộng** (khoảng ±0.1) vì tập test chỉ có khoảng 39 nhóm workflow: cần thêm dữ liệu để kết luận chi tiết.
-- Cross-validation cho kết quả gần với tập test cố định, nên thứ hạng LLM > luật > TF-IDF là ổn định.
+- Khoảng tin cậy **rộng** (khoảng ±0.1) vì tập test chỉ có 43 nhóm workflow: cần thêm dữ liệu để kết luận chi tiết.
+- **Ngưỡng TF-IDF đã đổi từ 0.4 sang 0.2** (chọn bằng `tune-tfidf`, chỉ nhìn train). Ngưỡng cũ khiến TF-IDF trả
+  `unknown` cho 73% mẫu test, nên kết quả trước đây (0.23, "luật ≈ TF-IDF") là do ngưỡng chứ không phải do phương pháp.
+  TF-IDF vẫn yếu ở các loại hiếm (macro F1 0.29) và trên log GitHub Actions (0.32).
+- ⚠️ Ý tưởng hybrid được chọn sau khi thử trên tập test, nên con số test có thể hơi lạc quan. Chi tiết:
+  [`docs/reports/2026-09-15-tfidf-threshold-and-hybrid.md`](docs/reports/2026-09-15-tfidf-threshold-and-hybrid.md).
 - LLM: khoảng 1.5k token prompt + 300 token trả lời mỗi mẫu, độ trễ trung vị 4.5 giây, chi phí 0 USD. 8/291 câu trả
   lời không đọc được JSON. Loại yếu nhất là `infrastructure` (F1 0.39), hay nhầm với `test_assertion`.
 - ⚠️ Nhãn ban đầu do một LLM (Claude) gán rồi người duyệt giữ nguyên. Duyệt khi đã thấy nhãn nháp dễ bị ảnh hưởng
@@ -183,8 +194,10 @@ Mẫu `authentication` rất hiếm nên đã được bổ sung bằng tìm ki�
 là lỗi xác thực thật. Các mẫu này mang `retrieval: targeted-auth` và được báo cáo tách riêng, vì được chọn bằng từ khóa
 nên luật từ khóa đạt điểm cao bất thường trên chúng. Kết quả trên **không so được** với lần chấm trước vì tập test đã đổi.
 
-Hướng cải thiện tiếp theo: cắt log tốt hơn (so với lần chạy thành công gần nhất), bộ phân loại lai luật → LLM,
-và thêm luật cho lint, link checker, docs build, lỗi mạng (chỉ nhìn tập train).
+Hướng cải thiện tiếp theo: gán nhãn mù lại một phần tập test để đo mức thiên vị của nhãn nháp, chạy LLM trên train
+để có cross-validation độc lập với tập test, cắt log tốt hơn (so với lần chạy thành công gần nhất), và thêm luật cho
+lint, link checker, docs build, lỗi mạng (chỉ nhìn tập train). Bộ lai "luật cho `authentication`/`compilation` → LLM"
+đã thử và kém hơn LLM một chút (0.698 so với 0.708), nên không dùng.
 
 ## Nguyên tắc để kết quả đáng tin
 
@@ -212,7 +225,8 @@ ci_classifier/
   rules.py                  baseline 1: luật regex
   tfidf.py                  baseline 2: TF-IDF + logistic regression
   llm.py                    phương pháp 3: LLM qua OpenRouter, lưu câu trả lời -> data/llm_predictions.jsonl
-  methods.py                tạo bộ phân loại theo tên phương pháp
+  tune_tfidf.py             chọn ngưỡng abstain của TF-IDF bằng cross-validation trên train
+  methods.py                tạo bộ phân loại theo tên phương pháp; hybrid = LLM, TF-IDF khi LLM trả unknown
   classify.py               phân loại một log đã lưu + runbook
   triage.py                 đo thời gian triage của người -> data/triage_sessions.jsonl
   evaluate.py               metrics bằng pandas, báo cáo bằng Jinja2

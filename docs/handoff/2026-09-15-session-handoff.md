@@ -27,6 +27,10 @@ Tài liệu bàn giao để một phiên làm việc mới (người hoặc Clau
 
 ## 3. Số liệu chính (để khỏi phải chạy lại)
 
+> **Cập nhật sau bàn giao (15/09/2026, chiều):** ngưỡng TF-IDF đổi từ 0.4 sang 0.2 (chọn bằng `tune-tfidf` trên train),
+> thêm phương pháp `hybrid`. Test: TF-IDF 0.57, hybrid 0.74; kết quả luật và LLM không đổi. Các số TF-IDF bên dưới là
+> số cũ. Xem `docs/reports/2026-09-15-tfidf-threshold-and-hybrid.md` và `results/20260915-112959/`.
+
 **Dữ liệu:** 944 mẫu có nhãn, **tất cả `labeler: human`** (926 nhãn nháp do Claude gán được người duyệt giữ nguyên
 bằng `label --accept-drafts HuyHoangTran`, 18 nhãn duyệt từng mẫu). Nguồn: 194 GitHub Actions (164 lấy ngẫu nhiên,
 30 lấy có mục tiêu `retrieval: targeted-auth`), 750 LogChunks (Travis CI). Chia 653 train / 291 test theo nhóm
