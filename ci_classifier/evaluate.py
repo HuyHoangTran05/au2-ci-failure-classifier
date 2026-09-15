@@ -22,10 +22,12 @@ from jinja2 import Environment, FileSystemLoader
 
 from .common import (DRAFT_LABELER, LABELS, RESULTS, TRIAGE_LOG, UNKNOWN, load_config, now_iso, read_excerpt, read_jsonl,
                      read_labels, read_manifest, read_split)
+from . import llm
 from .methods import METHODS, build_predictor
 
 SMALL_TEST_SET = 30
-TITLES = {"rules": "Baseline 1 - keyword rules", "tfidf": "Baseline 2 - TF-IDF + logistic regression"}
+TITLES = {"rules": "Baseline 1 - keyword rules", "tfidf": "Baseline 2 - TF-IDF + logistic regression",
+          "llm": "Method 3 - LLM (OpenRouter)"}
 CONDITIONS = {"A": "A - log only", "B": "B - log + classifier hint"}
 
 
@@ -58,6 +60,27 @@ def compute_metrics(y_true: list[str], y_pred: list[str], categories: list[str])
         "macro_f1": per_category["f1"].mean(),
     }
     return {"summary": summary, "per_category": per_category, "confusion": confusion}
+
+
+def llm_usage(test_ids: list[str], texts: list[str], config: dict) -> dict | None:
+    """Tokens, cost and latency of the stored LLM answers used for the test samples."""
+    stored = llm.read_predictions()
+    model = config["llm"]["model"]
+    records = [stored.get((model, llm.PROMPT_VERSION, llm.excerpt_sha(text))) for text in texts]
+    records = [r for r in records if r]
+    if not records:
+        return None
+    df = pd.DataFrame(records)
+    return {
+        "model": model,
+        "prompt_version": llm.PROMPT_VERSION,
+        "answers": len(df),
+        "mean_prompt_tokens": df["prompt_tokens"].mean(),
+        "mean_completion_tokens": df["completion_tokens"].mean(),
+        "total_cost_usd": float(df["cost_usd"].fillna(0).sum()),
+        "median_latency_s": df["latency_s"].median(),
+        "unparseable": int((df["evidence"] == "unparseable reply").sum()),
+    }
 
 
 def source_label(record: dict) -> str:
@@ -157,11 +180,18 @@ def main(argv: list[str] | None = None) -> None:
         start = time.perf_counter()
         outputs = [predict(text) for text in texts]
         elapsed_ms = (time.perf_counter() - start) * 1000
-        predictions[method] = [category for category, _ in outputs]
-        predictions[f"{method}_detail"] = [detail[:160] for _, detail in outputs]
-        results[method] = compute_metrics(predictions["label"].tolist(), predictions[method].tolist(), categories)
+        answered = [output is not None for output in outputs]
+        if not any(answered):
+            print(f"{method} skipped: no stored answers for test samples (run `python -m ci_classifier llm-run`)")
+            continue
+        predictions[method] = [output[0] if output else "" for output in outputs]
+        predictions[f"{method}_detail"] = [output[1][:160] if output else "" for output in outputs]
+        # Methods with stored answers (LLM) are scored only on the samples they have answered so far.
+        scored = predictions[answered]
+        results[method] = compute_metrics(scored["label"].tolist(), scored[method].tolist(), categories)
         results[method]["summary"]["ms_per_sample"] = elapsed_ms / len(texts)
-        results[method]["by_source"] = by_source(predictions, method)
+        results[method]["by_source"] = by_source(scored, method)
+        results[method]["scored_rows"] = scored.index
 
     run = {
         "created_at": now_iso(),
@@ -177,14 +207,18 @@ def main(argv: list[str] | None = None) -> None:
     out_dir = RESULTS / datetime.now().strftime("%Y%m%d-%H%M%S")
     out_dir.mkdir(parents=True)
     predictions.to_csv(out_dir / "predictions.csv", index=False)
-    metrics = {"run": run, "config": config, "methods": results, "triage": triage}
+    llm_cost = llm_usage(test_ids, texts, config) if "llm" in results else None
+    metrics = {"run": run, "config": config, "triage": triage, "llm_usage": llm_cost,
+               "methods": {m: {k: v for k, v in r.items() if k != "scored_rows"} for m, r in results.items()}}
     (out_dir / "metrics.json").write_text(json.dumps(to_json(metrics), indent=2), encoding="utf-8")
 
     method_views = []
     for method, result in results.items():
-        mistakes = predictions.loc[predictions[method] != predictions["label"]].head(10)
+        scored = predictions.loc[result["scored_rows"]]
+        mistakes = scored.loc[scored[method] != scored["label"]].head(10)
         method_views.append({
             "title": TITLES[method],
+            "usage": llm_cost if method == "llm" else None,
             "summary": result["summary"],
             "per_category": result["per_category"].reset_index().to_dict("records"),
             "by_source": result["by_source"].reset_index().to_dict("records"),

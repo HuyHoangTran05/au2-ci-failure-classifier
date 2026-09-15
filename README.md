@@ -16,7 +16,7 @@ và bổ trợ cho dự án 3 (phân loại sự cố ứng dụng).
 | scikit-learn TF-IDF + logistic regression | `ci_classifier/tfidf.py` | ✅ |
 | Log đã gán nhãn dạng JSONL | `data/manifest.jsonl`, `data/labels.jsonl` | ✅ (đang gán nhãn) |
 | pytest cho regression cases | `tests/`, `tests/regression_cases.jsonl` | ✅ |
-| So sánh với LLM client | — | ⏳ chờ mentor xác nhận API LLM được dùng |
+| So sánh với LLM client | `ci_classifier/llm.py` (OpenRouter, model miễn phí) | ✅ |
 | Metrics qua pandas | `ci_classifier/evaluate.py` | ✅ |
 | CLI / tóm tắt bằng Jinja2 | `python -m ci_classifier ...`, `templates/report.md.j2` | ✅ |
 | Link tới runbook | `config.toml [runbooks]`, `docs/runbooks/` | ✅ runbook mẫu |
@@ -38,6 +38,20 @@ pytest                                 # kiểm tra mọi thứ chạy được
 ```
 
 Nếu PowerShell chặn `Activate.ps1`, chạy trực tiếp: `.\.venv\Scripts\python.exe -m ci_classifier ...`
+
+### API key cho LLM
+
+Phương pháp LLM gọi [OpenRouter](https://openrouter.ai) và chỉ dùng model miễn phí (đuôi `:free`, chọn trong
+`config.toml [llm]`). Tạo file `.env` ở thư mục này (đã nằm trong `.gitignore`, **không bao giờ commit**):
+
+```
+OPENROUTER_API_KEY=sk-or-v1-...
+```
+
+Giới hạn cần biết: model miễn phí bị giới hạn số lượt mỗi phút và mỗi ngày, và đôi khi bị nhà cung cấp chặn tạm thời.
+Vì vậy mọi câu trả lời được lưu trong `data/llm_predictions.jsonl` (theo model, phiên bản prompt và mã băm đoạn log);
+`llm-run` bỏ qua mẫu đã có câu trả lời, còn `evaluate` chỉ đọc file này và chấm LLM trên các mẫu đã trả lời.
+Log công khai gửi lên OpenRouter là chấp nhận được; **log nội bộ DMS thì phải hỏi mentor trước**.
 
 ## Quy trình
 
@@ -64,6 +78,9 @@ python -m ci_classifier split
 # 5. Cải thiện luật từ khóa, CHỈ nhìn vào tập train; thêm mỗi lỗi đã sửa vào tests/regression_cases.jsonl
 python -m ci_classifier rules --split train
 pytest
+
+# 5b. Hỏi LLM về các mẫu test (lưu vào data/llm_predictions.jsonl; chạy lại để làm tiếp nếu hết lượt trong ngày)
+python -m ci_classifier llm-run
 
 # 6. Chấm điểm trên tập test -> results/<thời gian>/report.md, metrics.json, predictions.csv
 python -m ci_classifier evaluate
@@ -119,6 +136,11 @@ Dữ liệu: 944 mẫu có nhãn (194 GitHub Actions, 750 LogChunks). Chia theo 
 | --- | --- | --- | --- | --- |
 | Luật từ khóa | 0.30 | 0.54 | 0.65 | 0.37 |
 | TF-IDF + logistic regression | 0.23 | 0.73 | 0.83 | 0.16 |
+| LLM `nvidia/nemotron-3-super-120b-a12b:free` (prompt v1) | **0.71** | 0.08 | 0.77 | **0.67** |
+
+LLM: trung bình khoảng 1.5k token prompt + 300 token trả lời mỗi mẫu, độ trễ trung vị 4.5 giây, chi phí 0 USD
+(model miễn phí). 8/291 câu trả lời không đọc được JSON. Loại yếu nhất là `infrastructure` (F1 0.39): model hay nhầm
+với `test_assertion`. ⚠️ Nhãn test do Claude (một LLM khác) gán nháp, nên điểm LLM có thể bị **thiên vị lên**.
 
 Mẫu `authentication` rất hiếm nên đã được bổ sung bằng tìm kiếm có mục tiêu:
 `fetch --workflow-filter ... --require <regex lỗi xác thực> --tag targeted-auth`. Trong 38 log khớp từ khóa, chỉ 12 log
@@ -155,6 +177,7 @@ ci_classifier/
   split.py                  chia train/test -> data/split.json
   rules.py                  baseline 1: luật regex
   tfidf.py                  baseline 2: TF-IDF + logistic regression
+  llm.py                    phương pháp 3: LLM qua OpenRouter, lưu câu trả lời -> data/llm_predictions.jsonl
   methods.py                tạo bộ phân loại theo tên phương pháp
   classify.py               phân loại một log đã lưu + runbook
   triage.py                 đo thời gian triage của người -> data/triage_sessions.jsonl

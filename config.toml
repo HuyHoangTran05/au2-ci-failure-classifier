@@ -51,3 +51,15 @@ seed = 42
 
 [tfidf]
 abstain_below = 0.4  # xác suất cao nhất thấp hơn ngưỡng này thì trả về "unknown"
+
+[llm]
+# OpenRouter, chỉ dùng model miễn phí (đuôi :free). API key đặt trong .env (OPENROUTER_API_KEY), không commit.
+base_url = "https://openrouter.ai/api/v1/chat/completions"
+model = "nvidia/nemotron-3-super-120b-a12b:free"   # gemma-4-31b:free bị giới hạn upstream khi thử (14/09/2026)
+temperature = 0
+max_tokens = 1024           # đủ chỗ cho model có bước suy luận trước khi trả JSON
+timeout_seconds = 120
+requests_per_minute = 15    # model miễn phí giới hạn khoảng 20 lượt/phút
+max_retries = 3
+max_excerpt_chars = 20000   # đoạn log dài hơn thì giữ phần cuối
+abstain_below = 0.0         # độ tự tin (model tự khai) thấp hơn ngưỡng này thì coi là "unknown"; 0 = tắt

@@ -12,12 +12,13 @@ COMMANDS = {
     "label": "label excerpts by hand",
     "split": "split labelled samples into train and test sets",
     "rules": "inspect keyword-rule predictions on the train set",
+    "llm-run": "ask the LLM (OpenRouter) about test samples and store the answers",
     "evaluate": "compare classifiers on the test set and write a report",
     "classify": "classify one saved failed-job log and link its runbook",
     "triage": "time human triage with and without the classifier's hint",
 }
 # Commands whose module name differs from the command name.
-MODULES = {"import-logchunks": "logchunks"}
+MODULES = {"import-logchunks": "logchunks", "llm-run": "llm"}
 
 
 def main() -> None:

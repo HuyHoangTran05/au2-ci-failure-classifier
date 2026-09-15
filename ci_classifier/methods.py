@@ -4,17 +4,20 @@ from __future__ import annotations
 
 from typing import Callable
 
-from . import rules
+from . import llm, rules
 from .common import read_excerpt
 from .tfidf import TfidfClassifier
 
-METHODS = ["rules", "tfidf"]
-Predictor = Callable[[str], tuple[str, str]]
+METHODS = ["rules", "tfidf", "llm"]
+# A predictor returns None only when it has no answer for a sample (an LLM sample not yet sent to the API).
+Predictor = Callable[[str], tuple[str, str] | None]
 
 
-def build_predictor(method: str, config: dict, labels: dict[str, dict], split: dict | None) -> Predictor:
+def build_predictor(method: str, config: dict, labels: dict[str, dict], split: dict | None,
+                    live: bool = False) -> Predictor:
     """Return a function mapping excerpt text to (category, detail).
 
+    For "llm", the default predictor reads stored answers only; `live=True` calls the API for unseen text.
     Raises ValueError when the method cannot be built (e.g. TF-IDF without labelled train data).
     """
     if method == "rules":
@@ -31,4 +34,24 @@ def build_predictor(method: str, config: dict, labels: dict[str, dict], split: d
             return category, f"p={probability:.2f}"
 
         return predict
+    if method == "llm":
+        cached = llm.cached_predictor(config)
+        if not live:
+            return cached
+        try:
+            client = llm.OpenRouterClient(config["llm"], llm.load_api_key())
+        except llm.LLMError as exc:
+            raise ValueError(str(exc)) from exc
+
+        def predict_live(text: str) -> tuple[str, str]:
+            answer = cached(text)
+            if answer is not None:
+                return answer
+            try:
+                record = llm.classify_text(text, config, client)
+            except llm.LLMError as exc:
+                raise ValueError(f"LLM call failed: {exc}") from exc
+            return llm.to_prediction(record, config["llm"]["abstain_below"])
+
+        return predict_live
     raise ValueError(f"unknown method {method!r}; choose from {', '.join(METHODS)}")

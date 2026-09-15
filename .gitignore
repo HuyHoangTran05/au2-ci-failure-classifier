@@ -6,3 +6,5 @@ data/fetch*.log
 __pycache__/
 .pytest_cache/
 .venv/
+# Bí mật (API key) - không bao giờ commit.
+.env

@@ -19,7 +19,7 @@ import random
 import time
 import uuid
 
-from .common import (TRIAGE_LOG, append_jsonl, load_config, now_iso, read_excerpt, read_jsonl, read_labels,
+from .common import (TRIAGE_LOG, UNKNOWN, append_jsonl, load_config, now_iso, read_excerpt, read_jsonl, read_labels,
                      read_split, runbook_for)
 from .methods import METHODS, build_predictor
 
@@ -69,7 +69,7 @@ def main(argv: list[str] | None = None) -> None:
     input()
     for index, (sample_id, condition) in enumerate(zip(queue, conditions), start=1):
         excerpt = read_excerpt(sample_id)
-        category, detail = predict(excerpt)
+        category, detail = predict(excerpt) or (UNKNOWN, "no stored LLM answer; run llm-run first")
         print(CLEAR + excerpt.rstrip())
         print("=" * 100)
         print(f"[{index}/{len(queue)}] Nguyên nhân khiến CI fail là gì?")

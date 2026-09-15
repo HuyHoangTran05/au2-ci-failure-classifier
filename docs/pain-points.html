@@ -230,12 +230,13 @@ Build FAILED.
         <tbody>
           <tr><td>Luật từ khóa (regex)</td><td class="n">0.30</td><td class="n">54%</td><td class="n">65%</td><td class="n">0.37</td></tr>
           <tr><td>TF-IDF + logistic regression</td><td class="n">0.23</td><td class="n">73%</td><td class="n">83%</td><td class="n">0.16</td></tr>
-          <tr><td>LLM</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td></tr>
+          <tr><td>LLM (nemotron-3-super, miễn phí)</td><td class="n">0.71</td><td class="n">8%</td><td class="n">77%</td><td class="n">0.67</td></tr>
         </tbody>
       </table>
     </div>
     <ul class="points">
-      <li><strong>Đúng khá khi chịu trả lời, nhưng từ chối quá nhiều.</strong> Luật chưa có mẫu cho <code>other</code> và <code>infrastructure</code>; TF-IDF quá thận trọng khi dữ liệu ít.</li>
+      <li><strong>Luật và TF-IDF đúng khá khi chịu trả lời, nhưng từ chối quá nhiều.</strong> Luật chưa có mẫu cho <code>other</code> và <code>infrastructure</code>; TF-IDF quá thận trọng khi dữ liệu ít.</li>
+      <li><strong>LLM tốt hơn rõ nhưng có thể bị thiên vị lên.</strong> Nhãn test do một LLM khác gán nháp. Loại yếu nhất của LLM là <code>infrastructure</code> (F1 0.39), hay nhầm với <code>test_assertion</code>. Model miễn phí bị giới hạn lượt gọi và đôi khi bị chặn tạm thời.</li>
       <li><strong>Điểm không ổn định.</strong> Chỉ chia lại tập mà accuracy của luật đổi từ 0.24 lên 0.30. Cần cross-validation và báo cáo độ lệch.</li>
       <li><strong>Mẫu lấy có mục tiêu gây thiên vị.</strong> Log authentication được tìm bằng từ khóa, nên luật đạt 0.86 trên nhóm này. Nhóm này được báo cáo tách riêng, không tính là thành tích.</li>
       <li><strong>Chưa đo được thời gian triage thật.</strong> Cần người không tham gia gán nhãn làm thử.</li>
@@ -248,7 +249,7 @@ Build FAILED.
       <h2 id="s-ask">Câu hỏi trước khi đi tiếp</h2>
     </div>
     <ol class="questions">
-      <li><div><strong>LLM dùng API nào?</strong><span>Giới hạn chi phí bao nhiêu, và log nội bộ DMS có được gửi lên API bên ngoài không?</span></div></li>
+      <li><div><strong>Log nội bộ DMS có được gửi lên LLM bên ngoài không?</strong><span>Hiện dùng OpenRouter với model miễn phí trên log công khai; model miễn phí có thể lưu dữ liệu gửi lên.</span></div></li>
       <li><div><strong>CI của DMS chạy ở đâu?</strong><span>Azure DevOps hay GitLab; có lấy được log fail lịch sử để test không; log được lưu bao lâu?</span></div></li>
       <li><div><strong>Giữ 6 loại lỗi hay tách thêm?</strong><span>Ví dụ lint, build tài liệu, cấu hình workflow, cho phù hợp với lỗi thường gặp ở DMS.</span></div></li>
       <li><div><strong>Ai duyệt nhãn cùng?</strong><span>Cần ít nhất một người nữa để đo mức đồng thuận và làm đáp án tin cậy.</span></div></li>
@@ -258,7 +259,7 @@ Build FAILED.
   </section>
 
   <footer>
-    <span>Nguồn số liệu: <code>results/20260914-173253/report.md</code>, <code>data/labels.jsonl</code>, <code>data/manifest.jsonl</code>.</span>
+    <span>Nguồn số liệu: <code>results/20260915-091730/report.md</code>, <code>data/labels.jsonl</code>, <code>data/manifest.jsonl</code>.</span>
     <span>Repo: <a href="https://github.com/HuyHoangTran05/au2-ci-failure-classifier">HuyHoangTran05/au2-ci-failure-classifier</a> (private)</span>
   </footer>
 </main>

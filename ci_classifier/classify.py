@@ -38,12 +38,11 @@ def main(argv: list[str] | None = None) -> None:
 
     config = load_config()
     try:
-        predict = build_predictor(args.method, config, read_labels(), read_split())
+        predict = build_predictor(args.method, config, read_labels(), read_split(), live=True)
+        excerpt = build_excerpt(load_log(args.log), config["excerpt"])
+        category, detail = predict(excerpt)
     except ValueError as exc:
-        parser.error(str(exc))
-
-    excerpt = build_excerpt(load_log(args.log), config["excerpt"])
-    category, detail = predict(excerpt)
+        raise SystemExit(f"error: {exc}")
     result = {"log": str(args.log), "method": args.method, "category": category,
               "detail": detail, "runbook": runbook_for(category, config)}
 
