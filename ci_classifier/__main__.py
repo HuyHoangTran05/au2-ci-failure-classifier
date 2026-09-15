@@ -14,6 +14,7 @@ COMMANDS = {
     "label": "label excerpts by hand",
     "split": "split labelled samples into train and test sets",
     "rules": "inspect keyword-rule predictions on the train set",
+    "tune-tfidf": "choose the TF-IDF abstain threshold by cross-validation on the train set",
     "llm-run": "ask the LLM (OpenRouter) about test samples and store the answers",
     "evaluate": "compare classifiers on the test set and write a report",
     "classify": "classify one saved failed-job log and link its runbook",
@@ -21,7 +22,7 @@ COMMANDS = {
 }
 # Commands whose module name differs from the command name.
 MODULES = {"import-logchunks": "logchunks", "llm-run": "llm", "excerpt-eval": "excerpt_eval",
-           "fetch-baselines": "baselines"}
+           "fetch-baselines": "baselines", "tune-tfidf": "tune_tfidf"}
 
 
 def main() -> None:
