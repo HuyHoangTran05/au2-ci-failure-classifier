@@ -174,6 +174,8 @@ def render_report(context: dict) -> str:
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="python -m ci_classifier evaluate", description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--source", choices=["github-actions", "logchunks"],
+                        help="score only test samples from this log source (cross-validation included)")
     parser.add_argument("--cv", type=int, metavar="K", default=0,
                         help="also run grouped, stratified K-fold cross-validation over all labelled samples")
     args = parser.parse_args(argv)
@@ -190,12 +192,16 @@ def main(argv: list[str] | None = None) -> None:
         print(f"Warning: {len(unassigned)} labelled samples are not in the split "
               "(run `python -m ci_classifier split --extend`).")
 
+    manifest = read_manifest()
+
+    def in_scope(sid: str) -> bool:
+        return args.source is None or manifest[sid].get("source", "github-actions") == args.source
+
     train_ids = [sid for sid in split["train"] if sid in labels]
-    test_ids = [sid for sid in split["test"] if sid in labels]
+    test_ids = [sid for sid in split["test"] if sid in labels and in_scope(sid)]
     if not test_ids:
         raise SystemExit("The test set has no labelled samples.")
 
-    manifest = read_manifest()
     predictions = pd.DataFrame({
         "sample_id": test_ids,
         "source": [source_label(manifest[sid]) for sid in test_ids],
@@ -235,10 +241,11 @@ def main(argv: list[str] | None = None) -> None:
         "labels_sha256": hashlib.sha256(LABELS.read_bytes()).hexdigest()[:16],
         "split_created_at": split["created_at"],
         "excerpt_profile": excerpt_profile(),
+        "source_filter": args.source or "all",
     }
     triage = triage_summary(read_jsonl(TRIAGE_LOG))
 
-    suffix = "" if excerpt_profile() == "default" else f"-{excerpt_profile()}"
+    suffix = ("" if excerpt_profile() == "default" else f"-{excerpt_profile()}") + (f"-{args.source}" if args.source else "")
     out_dir = RESULTS / (datetime.now().strftime("%Y%m%d-%H%M%S") + suffix)
     out_dir.mkdir(parents=True)
     predictions.to_csv(out_dir / "predictions.csv", index=False)
@@ -247,7 +254,8 @@ def main(argv: list[str] | None = None) -> None:
                                config["split"]["seed"])
     cv_folds = cv_summary = None
     if args.cv:
-        cv_folds = crossval.cross_validate(list(labels), labels, manifest, config, args.cv, config["split"]["seed"])
+        cv_ids = [sid for sid in labels if in_scope(sid)]
+        cv_folds = crossval.cross_validate(cv_ids, labels, manifest, config, args.cv, config["split"]["seed"])
         cv_summary = crossval.summarize(cv_folds)
         cv_folds.to_csv(out_dir / "cv_folds.csv", index=False)
     metrics = {"run": run, "config": config, "triage": triage, "llm_usage": llm_cost, "significance": significance,
@@ -275,7 +283,7 @@ def main(argv: list[str] | None = None) -> None:
         "small_test_set": SMALL_TEST_SET,
         "methods": method_views,
         "significance": significance,
-        "cv": None if cv_summary is None else {"k": args.cv, "samples": len(labels),
+        "cv": None if cv_summary is None else {"k": args.cv, "samples": len(cv_ids),
                                                "rows": cv_summary.reset_index().to_dict("records")},
         "triage": None if triage is None else triage.reset_index().to_dict("records"),
     })
