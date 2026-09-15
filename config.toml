@@ -71,7 +71,9 @@ seed = 42
 bootstrap_samples = 1000   # số lần lấy mẫu lại (theo nhóm repo/workflow) để tính khoảng tin cậy 95%
 
 [tfidf]
-abstain_below = 0.4  # xác suất cao nhất thấp hơn ngưỡng này thì trả về "unknown"
+# Xác suất cao nhất thấp hơn ngưỡng này thì trả về "unknown". Chọn bằng `tune-tfidf` (CV trên train, 15/09/2026):
+# 0.2 cho accuracy cao nhất; ngưỡng cũ 0.4 khiến 84% mẫu train bị trả "unknown". Có 6 loại nên xác suất cao nhất luôn >= 1/6.
+abstain_below = 0.2
 
 [llm]
 # OpenRouter, chỉ dùng model miễn phí (đuôi :free). API key đặt trong .env (OPENROUTER_API_KEY), không commit.
