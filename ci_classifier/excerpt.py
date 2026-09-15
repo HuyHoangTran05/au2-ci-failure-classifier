@@ -14,6 +14,7 @@ import argparse
 import gzip
 import re
 
+from .baselines import read_baseline
 from .common import excerpt_dir, excerpt_path, excerpt_profile, excerpt_settings, load_config, raw_path, read_manifest
 
 ANSI = re.compile(r"(?:\x1b|\^\[)\[[0-9;?]*[A-Za-z]")
@@ -37,7 +38,14 @@ ERROR_HINT = re.compile(
     r"|\bpanic|segmentation fault|timed? ?out|refused|undefined|not defined|\bmissing\b|\binvalid\b|violation"
     r"|\baborted?\b|\bkilled\b|mismatch|\bconflict|dubious|✖|✗|ERR!"
 )
-STRATEGIES = ("marker", "hints")
+STRATEGIES = ("marker", "hints", "baseline-diff")
+# Run-specific values that differ between two runs of the same job, replaced before comparing line templates.
+TEMPLATE_PATTERNS = [
+    (re.compile(r"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b", re.IGNORECASE), "<guid>"),
+    (re.compile(r"\b[0-9a-f]{7,}\b", re.IGNORECASE), "<hex>"),
+    (re.compile(r"(?:[A-Za-z]:)?(?:[\\/][^\s\\/:\"']+){2,}"), "<path>"),
+    (re.compile(r"\d+(?:[.:,]\d+)*"), "<n>"),
+]
 UNKNOWN_JOB = "(unknown job)"
 PLAIN_JOB = "log"
 
@@ -151,12 +159,33 @@ def hint_excerpt(lines: list[str], cfg: dict) -> list[str]:
     return out
 
 
-def build_excerpt(raw_text: str, cfg: dict) -> str:
+def line_template(text: str) -> str:
+    """Shape of a log line with run-specific values (ids, paths, numbers, durations) replaced."""
+    for pattern, placeholder in TEMPLATE_PATTERNS:
+        text = pattern.sub(placeholder, text)
+    return " ".join(text.split())
+
+
+def novel_lines(lines: list[str], baseline_lines: list[str]) -> list[str]:
+    """Failed-job lines whose template never appears in the successful baseline job.
+
+    Error markers are always kept, even when a baseline step printed the same template.
+    """
+    seen = {line_template(clean_line(line)) for line in baseline_lines}
+    return [line for line in lines if ERROR_MARKER.search(line) or line_template(line) not in seen]
+
+
+def build_excerpt(raw_text: str, cfg: dict, baseline: dict[str, list[str]] | None = None) -> str:
+    """Cut a raw log. `baseline` (job name -> lines of a successful run) is used by the baseline-diff strategy;
+    jobs without a baseline fall back to the marker window."""
     jobs = parse_jobs(raw_text)
-    select = hint_excerpt if cfg.get("strategy", "marker") == "hints" else job_excerpt
+    strategy = cfg.get("strategy", "marker")
+    select = hint_excerpt if strategy == "hints" else job_excerpt
     out: list[str] = []
     omitted: list[str] = []
     for job, lines in jobs.items():
+        if strategy == "baseline-diff" and baseline and job in baseline:
+            lines = novel_lines(lines, baseline[job])
         section = [f"## job: {job}", *select(lines, cfg)]
         if out and len(out) + len(section) > cfg["max_total_lines"]:
             omitted.append(job)
@@ -176,7 +205,7 @@ def main(argv: list[str] | None = None) -> None:
     cfg = excerpt_settings(load_config())
     excerpt_dir().mkdir(parents=True, exist_ok=True)
     print(f"Excerpt profile: {excerpt_profile()} -> {excerpt_dir()}")
-    built = skipped = 0
+    built = skipped = with_baseline = 0
     for sample_id, record in read_manifest().items():
         if record.get("status") != "ok" or not raw_path(sample_id).exists():
             continue
@@ -185,9 +214,11 @@ def main(argv: list[str] | None = None) -> None:
             skipped += 1
             continue
         raw_text = gzip.decompress(raw_path(sample_id).read_bytes()).decode("utf-8", "replace")
-        target.write_text(build_excerpt(raw_text, cfg), encoding="utf-8")
+        baseline = read_baseline(sample_id) if cfg.get("strategy") == "baseline-diff" else None
+        with_baseline += baseline is not None
+        target.write_text(build_excerpt(raw_text, cfg, baseline), encoding="utf-8")
         built += 1
-    print(f"Done: {built} excerpts built, {skipped} already present.")
+    print(f"Done: {built} excerpts built ({with_baseline} with a success-run baseline), {skipped} already present.")
 
 
 if __name__ == "__main__":

@@ -56,6 +56,9 @@ max_line_chars = 400
 [excerpt.profiles.wide80]
 context_before_error = 80       # cửa sổ rộng gấp đôi trước dấu lỗi
 
+[excerpt.profiles.diff]
+strategy = "baseline-diff"      # bỏ dòng cũng có trong run thành công gần nhất (cần fetch-baselines); job không có baseline dùng marker
+
 [excerpt.profiles.hints]
 strategy = "hints"              # thử nghiệm: kém hơn "marker" trên train (xem docs/reports)
 hint_anchor_lines = 30
