@@ -81,6 +81,11 @@ python -m ci_classifier label --blind --labeler <tên> --count 80
 python -m ci_classifier agreement --labeler <tên>
 python -m ci_classifier label --adjudicate --labeler <tên>
 
+# 3c. Hoặc: hội đồng 3 LLM gán lại 80 mẫu đó, người chỉ phân xử mẫu bị tranh cãi (xem docs/labeling-guide.md)
+python -m ci_classifier panel-run
+python -m ci_classifier panel-report
+python -m ci_classifier label --adjudicate --panel --labeler <tên>
+
 # 4. Chia train/test MỘT LẦN, sau khi đã gán nhãn xong
 python -m ci_classifier split
 
@@ -232,6 +237,7 @@ ci_classifier/
   baselines.py              tải run thành công gần nhất -> data/baselines/, data/baselines.jsonl
   label.py                  công cụ gán nhãn -> data/labels.jsonl; --blind -> data/blind_labels.jsonl; --adjudicate
   agreement.py              nhãn mù so với nhãn nháp: Cohen's kappa, ma trận nhầm, độ thiên vị của từng phương pháp
+  panel.py                  hội đồng LLM gán lại mẫu lượt mù -> data/panel_labels.jsonl; Fleiss' kappa, danh sách phân xử
   split.py                  chia train/test -> data/split.json
   rules.py                  baseline 1: luật regex
   tfidf.py                  baseline 2: TF-IDF + logistic regression

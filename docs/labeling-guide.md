@@ -74,6 +74,29 @@ Vòng 1 (15/09/2026, `HuyHoangTran`): 80 mẫu trong 8.8 phút, trung vị 6 gi�
 18 mẫu có dòng log ghi rõ loại của nhãn nháp (ví dụ `AssertionError`, `1 failing`) nhưng không có dấu hiệu nào của nhãn
 mù; chỉ 2 mẫu ngược lại. Vì vậy vòng này được ghi nhận là **gán quá nhanh**, không dùng để kết luận về chất lượng nhãn nháp.
 
+## Hội đồng LLM (khi không có người thứ hai)
+
+```powershell
+python -m ci_classifier panel-run                                   # 3 model x 80 mẫu của lượt gán mù
+python -m ci_classifier panel-report                                # đồng thuận, Fleiss' kappa, danh sách cần người đọc
+python -m ci_classifier label --adjudicate --panel --labeler <tên>  # người phân xử các mẫu bị tranh cãi
+```
+
+- Ba model miễn phí thuộc ba họ khác nhau (`config.toml [panel]`). Không dùng Nemotron (là bộ phân loại đang được đánh
+  giá) và không dùng Claude (đã gán nhãn nháp).
+- Mỗi model thấy đúng những gì người gán mù thấy: repo, workflow, tiêu đề, đoạn lỗi LogChunks nếu có, và đoạn log.
+  Model không thấy nhãn, ghi chú hay dự đoán nào. Prompt viết theo đúng các quy tắc trong file này.
+- Mỗi mẫu được xếp vào một nhóm:
+  - `confirmed`: ít nhất 2/3 model chọn cùng nhãn với nhãn nháp.
+  - `contested`: ít nhất 2/3 model chọn cùng một nhãn khác.
+  - `split`: không có đa số.
+  Hai nhóm sau vào danh sách cần người đọc.
+- Khi phân xử, các nhãn ứng viên (nhãn nháp và nhãn các model chọn) được hiện theo thứ tự ngẫu nhiên, không cho biết
+  nhãn nào của ai.
+- **Nhóm `confirmed` không phải đáp án do người kiểm tra.** Các model có thể sai giống nhau. Khi báo cáo phải ghi rõ:
+  "nhãn nháp; mẫu bị hội đồng LLM tranh cãi đã được người phân xử".
+- Trước khi phân xử, không mở `results/*-panel/votes.csv`, vì file này chứa nhãn nháp.
+
 Hạn chế: người gán mù cũng là người đã duyệt nhãn nháp, nên vẫn có thể nhớ một phần. Kết quả này là cận trên của mức
 đồng thuận thật; ghi rõ điều đó khi báo cáo.
 

@@ -33,6 +33,8 @@ và không gửi log nội bộ lên LLM bên ngoài khi chưa có mentor đồn
 .\.venv\Scripts\python.exe -m ci_classifier label --blind --labeler <tên>   # người gán mù; Claude không tự gán
 .\.venv\Scripts\python.exe -m ci_classifier agreement          # kappa nhãn mù vs nháp, thiên vị theo phương pháp
 .\.venv\Scripts\python.exe -m ci_classifier label --adjudicate --labeler <tên>
+.\.venv\Scripts\python.exe -m ci_classifier panel-run          # hội đồng 3 LLM (config [panel]) gán lại 80 mẫu lượt mù
+.\.venv\Scripts\python.exe -m ci_classifier panel-report       # đồng thuận + danh sách cho label --adjudicate --panel
 .\.venv\Scripts\python.exe -m ci_classifier llm-run --limit 40
 .\.venv\Scripts\python.exe -m ci_classifier evaluate --cv 5   # báo cáo -> results/<thời gian>/
 .\.venv\Scripts\python.exe -m ci_classifier tune-tfidf         # chọn [tfidf] abstain_below bằng CV trên train
@@ -63,6 +65,9 @@ và không gửi log nội bộ lên LLM bên ngoài khi chưa có mentor đồn
 - `blind_labels.jsonl`: nhãn gán mù (label `null` = không rõ), không bao giờ ghi đè `labels.jsonl`. Chỉ `label --adjudicate`
   ghi nhãn cuối (note `adjudicated by ...`). Claude không được tạo nhãn mù thay người, và không hiện nhãn hay dự đoán
   cho người đang gán mù.
+- `panel_labels.jsonl`: câu trả lời của hội đồng LLM, khoá (model, `PANEL_PROMPT_VERSION`, mã băm đầu vào). Hội đồng không
+  được thấy nhãn; `panel-run` không in so sánh với nhãn. Không dùng model của bộ phân loại (Nemotron) hay Claude trong hội đồng.
+  Nhãn `confirmed` của hội đồng không phải nhãn người kiểm tra; báo cáo phải ghi rõ.
 - `data/raw/`, `data/excerpts/`, `data/external/` tái tạo được và bị gitignore. `manifest`, `labels`, `split`,
   `llm_predictions` là công sức thật, phải commit.
 - Profile cắt log: `CI_EXCERPT_PROFILE=<tên>` áp `[excerpt.profiles.<tên>]` và đọc/ghi `data/excerpts-<tên>/`;
