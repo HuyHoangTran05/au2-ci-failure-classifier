@@ -9,6 +9,7 @@ The API key is read from the OPENROUTER_API_KEY environment variable or from a g
 Usage:
     python -m ci_classifier llm-run                      # answer test samples, GitHub Actions first
     python -m ci_classifier llm-run --limit 20
+    python -m ci_classifier llm-run --source github-actions   # only the target log format
     python -m ci_classifier llm-run --model nvidia/nemotron-3-super-120b-a12b:free --split train --limit 3
 """
 
@@ -240,6 +241,7 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--split", choices=["test", "train"], default="test")
     parser.add_argument("--limit", type=int, default=None, help="maximum number of API calls this run")
     parser.add_argument("--model", default=cfg["model"])
+    parser.add_argument("--source", choices=["github-actions", "logchunks"], help="only samples from this source")
     parser.add_argument("--reparse", action="store_true",
                         help="re-read category/evidence/confidence from the stored raw replies (no API calls)")
     args = parser.parse_args(argv)
@@ -261,7 +263,8 @@ def main(argv: list[str] | None = None) -> None:
         parser.error("no data/split.json yet; run `python -m ci_classifier split` first")
     labels, manifest = read_labels(), read_manifest()
     # GitHub Actions samples are the target log format, so they get the scarce daily quota first.
-    queue = sorted((sid for sid in split[args.split] if sid in labels),
+    queue = sorted((sid for sid in split[args.split] if sid in labels
+                    and (args.source is None or manifest[sid].get("source", "github-actions") == args.source)),
                    key=lambda sid: (manifest[sid].get("source", "github-actions") != "github-actions", sid))
     stored = read_predictions()
     missing = [sid for sid in queue if (args.model, PROMPT_VERSION, excerpt_sha(read_excerpt(sid))) not in stored]
