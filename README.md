@@ -200,6 +200,9 @@ Cách đọc:
   [`docs/reports/2026-09-15-tfidf-threshold-and-hybrid.md`](docs/reports/2026-09-15-tfidf-threshold-and-hybrid.md).
 - LLM: khoảng 1.5k token prompt + 300 token trả lời mỗi mẫu, độ trễ trung vị 4.5 giây, chi phí 0 USD. 8/291 câu trả
   lời không đọc được JSON. Loại yếu nhất là `infrastructure` (F1 0.39), hay nhầm với `test_assertion`.
+- **Kiểm tra nhãn bằng hội đồng 3 LLM** (80 mẫu test, không dùng Claude hay Nemotron): mỗi model đồng ý với nhãn nháp
+  88–92% (kappa 0.82–0.88), Fleiss' kappa giữa 3 model 0.87; 8/80 mẫu bị tranh cãi, chờ người phân xử. Nhãn dễ tái tạo,
+  nhưng chưa chứng minh là đúng. Xem [`docs/reports/2026-09-15-llm-panel.md`](docs/reports/2026-09-15-llm-panel.md).
 - ⚠️ Nhãn ban đầu do một LLM (Claude) gán rồi người duyệt giữ nguyên. Duyệt khi đã thấy nhãn nháp dễ bị ảnh hưởng
   theo nhãn đó, nên điểm LLM vẫn có thể hơi cao. Chưa có người thứ hai, nên dùng `label --blind` để tự gán mù lại
   80 mẫu test rồi `agreement` để đo Cohen's kappa (xem `docs/labeling-guide.md`).

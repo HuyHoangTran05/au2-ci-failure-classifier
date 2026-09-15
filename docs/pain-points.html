@@ -143,7 +143,7 @@ Build FAILED.
     <div class="meta">
       <span>944 mẫu có nhãn</span>
       <span>194 log GitHub Actions · 750 log Travis (LogChunks)</span>
-      <span>Nhãn: nháp của Claude, đã duyệt hàng loạt, chưa kiểm tra mù</span>
+      <span>Nhãn: nháp của Claude; 80 mẫu test đã qua hội đồng 3 LLM, 8 mẫu chờ người phân xử</span>
     </div>
   </header>
 
@@ -171,8 +171,12 @@ Build FAILED.
         <p>LLM trả lời thêm 40 mẫu GitHub Actions trong train, nhưng chỉ khớp nhãn 23/40 (0.58), thấp hơn 0.69 trên tập test. Mẫu còn nhỏ, nhưng con số test của LLM trên log GitHub Actions có thể đang lạc quan. Repo đã có GitHub Actions chạy pytest mỗi lần push.</p>
       </div>
       <div class="pain">
-        <div class="stack"><span class="status wait">Đang chờ gán</span><h3>Gán nhãn mù</h3></div>
-        <p>Công cụ <code>label --blind</code> ẩn nhãn cũ và dự đoán, chọn cố định 80 mẫu test. <code>agreement</code> tính Cohen's kappa và so điểm của từng phương pháp theo nhãn nháp và theo nhãn mù. <code>label --adjudicate</code> dùng để chốt nhãn cuối cho các mẫu bất đồng. Chưa có kết quả, vì cần người gán thật.</p>
+        <div class="stack"><span class="status done">Đã làm</span><h3>Gán nhãn mù, lượt 1</h3></div>
+        <p>80 mẫu test trong 8,8 phút (trung vị 6 giây/mẫu), kappa 0,25 so với nhãn nháp. Trong 41 mẫu bất đồng, 18 mẫu có dòng log ghi rõ loại lỗi của nhãn nháp, chỉ 2 mẫu ngược lại. Lượt này được ghi nhận là <em>gán quá nhanh</em> và không dùng để kết luận.</p>
+      </div>
+      <div class="pain">
+        <div class="stack"><span class="status wait">Chờ phân xử</span><h3>Hội đồng 3 LLM</h3></div>
+        <p>Ba model thuộc ba họ khác nhau (không dùng Claude hay Nemotron) gán độc lập cùng 80 mẫu, với đúng thông tin người gán thấy. Mỗi model đồng ý với nhãn nháp 88–92% (kappa 0,82–0,88); ba model đồng ý với nhau ở mức Fleiss' kappa 0,87. Có 72 mẫu được xác nhận; <strong>8 mẫu bị tranh cãi</strong> đang chờ người đọc lại bằng <code>label --adjudicate --panel</code>. Nhãn dễ tái tạo, nhưng chưa chứng minh là đúng: các LLM có thể cùng sai.</p>
       </div>
     </div>
   </section>
@@ -244,12 +248,12 @@ Build FAILED.
     <ul class="points">
       <li><strong>Ranh giới mơ hồ.</strong> Test fail vì mạng là <code>test_assertion</code> hay <code>infrastructure</code>? Một run có nhiều nguyên nhân thì chọn cái nào? Lỗi của workflow hoặc bot xếp vào đâu?</li>
       <li><strong><code>other</code> chiếm khoảng 1/3.</strong> Dấu hiệu 6 loại hiện tại chưa đủ; có thể cần tách lint, build tài liệu, cấu hình workflow.</li>
-      <li><strong>Chưa đo được mức đồng thuận.</strong> Chỉ có một người, nên sẽ tự gán mù lại 80 mẫu test sau vài ngày. Kappa đo cách này là <em>cận trên</em>, vì người gán vẫn có thể nhớ một phần nhãn cũ.</li>
+      <li><strong>Chưa có người thứ hai.</strong> Lượt gán mù tự làm bị quá nhanh. Mức đồng thuận hiện chỉ đo được giữa các LLM với nhau (Fleiss' kappa 0,87) và giữa LLM với nhãn nháp (kappa 0,82–0,88). Đây là con số về độ nhất quán, không phải độ đúng.</li>
       <li><strong>Đã có nghi vấn cụ thể.</strong> <code>ejabberd__566947386</code> có nhãn <code>authentication</code> (“DB user lacks permission”), nhưng đoạn log cắt ra chỉ cho thấy <code>git clone</code> bị <code>Connection timed out</code>.</li>
     </ul>
     <div class="callout">
       <strong>944 / 944 nhãn bắt đầu là nháp do Claude gán; 926 nhãn được duyệt hàng loạt trong một lần, không nhãn nào bị đổi.</strong>
-      <p>Mọi con số bên dưới chỉ đúng khi nhãn đúng. Accuracy 0.71 của LLM thực chất là mức đồng ý giữa hai LLM (Nemotron và Claude). Kết quả gán mù sẽ cho biết con số này bị nâng lên bao nhiêu.</p>
+      <p>Mọi con số bên dưới chỉ đúng khi nhãn đúng. Accuracy 0.71 của LLM thực chất là mức đồng ý giữa hai LLM (Nemotron và Claude). Hội đồng 3 LLM khác cho thấy nhãn nháp nhất quán, nhưng người vẫn cần đọc lại các mẫu bị tranh cãi.</p>
     </div>
   </section>
 
@@ -292,7 +296,7 @@ Build FAILED.
       <li><div><strong>Log nội bộ DMS có được gửi lên LLM bên ngoài không?</strong><span>Hiện dùng OpenRouter với model miễn phí trên log công khai; model miễn phí có thể lưu dữ liệu gửi lên.</span></div></li>
       <li><div><strong>CI của DMS chạy ở đâu?</strong><span>Azure DevOps hay GitLab; có lấy được log fail lịch sử để test không; log được lưu bao lâu?</span></div></li>
       <li><div><strong>Giữ 6 loại lỗi hay tách thêm?</strong><span>Ví dụ lint, build tài liệu, cấu hình workflow, cho phù hợp với lỗi thường gặp ở DMS.</span></div></li>
-      <li><div><strong>Mentor có thể gán mù 10–20 mẫu không?</strong><span>Dự án chỉ có một người. Tự gán mù lại cho kappa cận trên; chỉ cần vài chục nhãn từ người thứ hai là kiểm chứng được mức đó.</span></div></li>
+      <li><div><strong>Mentor có thể gán mù 10–20 mẫu không?</strong><span>Dự án chỉ có một người; hiện dùng hội đồng 3 LLM để kiểm tra nhãn. Vài chục nhãn từ một người thứ hai sẽ cho biết các LLM có đang cùng sai hay không.</span></div></li>
       <li><div><strong>Runbook thật nằm ở đâu?</strong><span>Hiện dự án dùng runbook mẫu cho từng loại lỗi.</span></div></li>
       <li><div><strong>Thế nào là “đạt”?</strong><span>Precision/recall tối thiểu và tỷ lệ trả lời unknown tối đa có thể chấp nhận.</span></div></li>
     </ol>

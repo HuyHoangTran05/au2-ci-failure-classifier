@@ -32,9 +32,12 @@ Tài liệu bàn giao để một phiên làm việc mới (người hoặc Clau
 > - Luật từ khóa được sửa trên train (npm, auth, lint, network). CI GitHub Actions chạy pytest.
 > - LLM đã trả lời thêm 40 mẫu GitHub Actions trong train (tổng 444 câu trả lời).
 > - Test 291 mẫu (`results/20260915-115444/`): luật 0.34, TF-IDF 0.57, LLM 0.71, hybrid 0.74.
-> - Công cụ gán nhãn mù đã có (`label --blind`, `agreement`, `label --adjudicate`) nhưng **chưa có nhãn mù nào**.
+> - Gán mù lượt 1 (`HuyHoangTran`): 80 mẫu trong 8.8 phút, kappa 0.25 → ghi nhận là gán quá nhanh, không dùng.
+> - Hội đồng 3 LLM (`panel-run`, `panel-report`, `results/20260915-145737-panel/`): kappa với nhãn nháp 0.82–0.88,
+>   Fleiss 0.87; 72 confirmed / 6 contested / 2 split. **8 mẫu chờ người dùng `label --adjudicate --panel`.**
+>   Không cho người dùng xem `votes.csv` (có nhãn nháp) trước khi phân xử.
 > - Báo cáo: `docs/reports/2026-09-15-tfidf-threshold-and-hybrid.md`, `docs/reports/2026-09-15-rules-ci-and-llm-train.md`.
-> - **Việc tiếp theo, theo thứ tự:** (1) người dùng gán mù 80 mẫu → `agreement` → `--adjudicate` → `evaluate --cv 5`;
+> - **Việc tiếp theo, theo thứ tự:** (1) người dùng phân xử 8 mẫu hội đồng tranh cãi → `evaluate --cv 5`;
 >   (2) `llm-run --split train --limit 40` mỗi ngày; (3) chỉ sau khi nhãn đã chốt mới làm prompt v2 hoặc thêm dữ liệu.
 >   Đừng tinh chỉnh thêm trên tập test trước bước (1).
 
