@@ -144,20 +144,29 @@ def user_message(excerpt: str, max_chars: int) -> dict:
     return {"role": "user", "content": f"CI log excerpt:\n```\n{excerpt}\n```"}
 
 
+def few_shot_text() -> str:
+    """The examples as text inside the system prompt.
+
+    They were first sent as user/assistant turns, but that made the model answer in prose and run out of tokens
+    (8 of the first 12 train answers came back without JSON), so they stay inside the instructions.
+    """
+    blocks = []
+    for sample, category, evidence, confidence in FEW_SHOT_V2:
+        answer = json.dumps({"category": category, "evidence": evidence, "confidence": confidence})
+        blocks.append(f"Excerpt:\n```\n{sample}\n```\nAnswer: {answer}")
+    return "\n\nExamples:\n\n" + "\n\n".join(blocks) + "\n\nAnswer the next excerpt the same way: the JSON object " \
+                                                       "only, with no reasoning before or after it."
+
+
 def build_messages(excerpt: str, categories: list[str], max_chars: int, version: str = PROMPT_VERSION) -> list[dict]:
     """Messages for one sample. v2 = v1 plus extra boundary rules and four labelled train examples."""
     if version not in ("v1", "v2"):
         raise ValueError(f"unknown prompt version {version!r}; use v1 or v2")
     guide = "\n".join(f"- {name}: {CATEGORY_GUIDE[name]}" for name in categories)
-    system = SYSTEM_PROMPT.format(categories=guide) + (EXTRA_RULES_V2 if version == "v2" else "")
-    messages = [{"role": "system", "content": system}]
+    system = SYSTEM_PROMPT.format(categories=guide)
     if version == "v2":
-        for sample, category, evidence, confidence in FEW_SHOT_V2:
-            messages.append(user_message(sample, max_chars))
-            messages.append({"role": "assistant", "content": json.dumps(
-                {"category": category, "evidence": evidence, "confidence": confidence})})
-    messages.append(user_message(excerpt, max_chars))
-    return messages
+        system += EXTRA_RULES_V2 + few_shot_text()
+    return [{"role": "system", "content": system}, user_message(excerpt, max_chars)]
 
 
 def parse_response(content: str, categories: list[str]) -> tuple[str, str, float | None]:
@@ -309,6 +318,8 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--source", choices=["github-actions", "logchunks"], help="only samples from this source")
     parser.add_argument("--prompt-version", choices=["v1", "v2"], default=active_version(config),
                         help="prompt to use; answers are stored per version so versions can be compared")
+    parser.add_argument("--redo", action="store_true",
+                        help="ask again even where an answer is stored (for a prompt version still being written)")
     parser.add_argument("--retry-unparseable", action="store_true",
                         help="ask again where a stored reply had no readable JSON (usually reasoning that used up "
                              "max_tokens); the new answer replaces the old one")
@@ -341,7 +352,7 @@ def main(argv: list[str] | None = None) -> None:
 
     def wanted(sid: str) -> bool:
         record = stored.get((args.model, version, excerpt_sha(read_excerpt(sid))))
-        return record is None or (args.retry_unparseable and record["evidence"] == UNPARSEABLE)
+        return record is None or args.redo or (args.retry_unparseable and record["evidence"] == UNPARSEABLE)
 
     missing = [sid for sid in queue if wanted(sid)]
     todo = missing if args.limit is None else missing[:args.limit]

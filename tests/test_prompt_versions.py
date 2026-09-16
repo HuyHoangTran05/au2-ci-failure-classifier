@@ -14,12 +14,14 @@ def test_v1_is_one_system_and_one_user_message():
     assert "log" in messages[-1]["content"]
 
 
-def test_v2_adds_rules_and_labelled_examples():
+def test_v2_adds_rules_and_labelled_examples_inside_the_instructions():
     messages = llm.build_messages("log", CONFIG["categories"], 1000, "v2")
-    assert [m["role"] for m in messages] == ["system"] + ["user", "assistant"] * len(llm.FEW_SHOT_V2) + ["user"]
-    assert "easy to get wrong" in messages[0]["content"]
-    answers = [json.loads(m["content"])["category"] for m in messages if m["role"] == "assistant"]
-    assert answers == [category for _, category, _, _ in llm.FEW_SHOT_V2]
+    # One system + one user turn, like v1: example turns made the model answer in prose instead of JSON.
+    assert [m["role"] for m in messages] == ["system", "user"]
+    system = messages[0]["content"]
+    assert "easy to get wrong" in system and "no reasoning before or after" in system
+    for sample, category, _, _ in llm.FEW_SHOT_V2:
+        assert sample in system and f'"category": "{category}"' in system
     assert messages[-1]["content"].endswith("```")
 
 
