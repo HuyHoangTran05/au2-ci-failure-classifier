@@ -110,7 +110,7 @@ def llm_usage(test_ids: list[str], texts: list[str], config: dict) -> dict | Non
         "mean_completion_tokens": df["completion_tokens"].mean(),
         "total_cost_usd": float(df["cost_usd"].fillna(0).sum()),
         "median_latency_s": df["latency_s"].median(),
-        "unparseable": int((df["evidence"] == "unparseable reply").sum()),
+        "unparseable": int((df["evidence"] == llm.UNPARSEABLE).sum()),
     }
 
 

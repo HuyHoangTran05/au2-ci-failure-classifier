@@ -35,6 +35,7 @@ from .common import (ROOT, UNKNOWN, append_jsonl, load_config, now_iso, read_exc
 
 PREDICTIONS = ROOT / "data" / "llm_predictions.jsonl"
 PROMPT_VERSION = "v1"          # default when config.toml [llm] has no prompt_version
+UNPARSEABLE = "unparseable reply"   # evidence text for a reply with no readable JSON (usually cut off by max_tokens)
 
 
 CATEGORY_GUIDE = {
@@ -182,7 +183,7 @@ def parse_response(content: str, categories: list[str]) -> tuple[str, str, float
             except (TypeError, ValueError):
                 confidence = None
             return category, str(data.get("evidence", ""))[:300], confidence
-    return UNKNOWN, "unparseable reply", None
+    return UNKNOWN, UNPARSEABLE, None
 
 
 class OpenRouterClient:
@@ -266,7 +267,7 @@ def classify_text(text: str, config: dict, client: OpenRouterClient, sample_id: 
         "prompt_version": version, "excerpt_sha": excerpt_sha(text),
         "category": category, "evidence": evidence, "confidence": confidence,
         "prompt_tokens": usage.get("prompt_tokens"), "completion_tokens": usage.get("completion_tokens"),
-        "cost_usd": usage.get("cost", 0), "latency_s": reply["latency_s"],
+        "cost_usd": usage.get("cost", 0), "latency_s": reply["latency_s"], "max_tokens": cfg["max_tokens"],
         "raw": reply["content"][:2000], "at": now_iso(),
     }
     append_jsonl(PREDICTIONS, record)
@@ -308,6 +309,9 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--source", choices=["github-actions", "logchunks"], help="only samples from this source")
     parser.add_argument("--prompt-version", choices=["v1", "v2"], default=active_version(config),
                         help="prompt to use; answers are stored per version so versions can be compared")
+    parser.add_argument("--retry-unparseable", action="store_true",
+                        help="ask again where a stored reply had no readable JSON (usually reasoning that used up "
+                             "max_tokens); the new answer replaces the old one")
     parser.add_argument("--reparse", action="store_true",
                         help="re-read category/evidence/confidence from the stored raw replies (no API calls)")
     args = parser.parse_args(argv)
@@ -334,7 +338,12 @@ def main(argv: list[str] | None = None) -> None:
                    key=lambda sid: (manifest[sid].get("source", "github-actions") != "github-actions", sid))
     stored = read_predictions()
     version = args.prompt_version
-    missing = [sid for sid in queue if (args.model, version, excerpt_sha(read_excerpt(sid))) not in stored]
+
+    def wanted(sid: str) -> bool:
+        record = stored.get((args.model, version, excerpt_sha(read_excerpt(sid))))
+        return record is None or (args.retry_unparseable and record["evidence"] == UNPARSEABLE)
+
+    missing = [sid for sid in queue if wanted(sid)]
     todo = missing if args.limit is None else missing[:args.limit]
     print(f"{len(queue) - len(missing)}/{len(queue)} {args.split} samples already answered by {args.model} "
           f"with prompt {version}; calling the API for {len(todo)}.")

@@ -4,7 +4,8 @@ import pytest
 
 from ci_classifier import llm
 
-CONFIG = {"categories": ["compilation", "other"], "llm": {"model": "m", "max_excerpt_chars": 1000, "abstain_below": 0}}
+CONFIG = {"categories": ["compilation", "other"],
+          "llm": {"model": "m", "max_excerpt_chars": 1000, "abstain_below": 0, "max_tokens": 2560}}
 
 
 def test_v1_is_one_system_and_one_user_message():
