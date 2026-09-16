@@ -1,276 +1,274 @@
-# AU2 - Phân loại lỗi CI (CI failure classifier)
+# CI Failure Classifier
 
-Đọc log của một job CI bị fail đã lưu, cho biết **vì sao nó fail** và **chỉ tới runbook** phù hợp:
-`compilation`, `test_assertion`, `dependency`, `authentication`, `infrastructure`, `other`,
-hoặc `unknown` khi không chắc (abstain).
+[![tests](https://github.com/HuyHoangTran05/au2-ci-failure-classifier/actions/workflows/tests.yml/badge.svg)](https://github.com/HuyHoangTran05/au2-ci-failure-classifier/actions/workflows/tests.yml)
 
-Dữ liệu là log **công khai** của GitHub Actions từ các repo mã nguồn mở. Dự án không dùng dữ liệu
-nội bộ công ty. Dự án thuộc "side-project bank" trong `../ASSIGNMENT.md` (mục AU2), đã được mentor đồng ý,
-và bổ trợ cho dự án 3 (phân loại sự cố ứng dụng).
+Đọc log của một job CI bị fail, cho biết **vì sao nó fail**, **dòng log nào là bằng chứng** và **nên mở runbook nào**.
 
-## Đối chiếu với đề bài
+```text
+$ python -m ci_classifier classify job.log
+Category: dependency
+Evidence: npm ERR! code ERESOLVE
+Runbook:  docs/runbooks/dependency.md
+```
 
-| Đề bài AU2 | Trong dự án | Trạng thái |
-| --- | --- | --- |
-| Luật regex (Python) | `ci_classifier/rules.py` | ✅ |
-| scikit-learn TF-IDF + logistic regression | `ci_classifier/tfidf.py` | ✅ |
-| Log đã gán nhãn dạng JSONL | `data/manifest.jsonl`, `data/labels.jsonl` | ✅ (đang gán nhãn) |
-| pytest cho regression cases | `tests/`, `tests/regression_cases.jsonl` | ✅ |
-| So sánh với LLM client | `ci_classifier/llm.py` (OpenRouter, model miễn phí) | ✅ |
-| Metrics qua pandas | `ci_classifier/evaluate.py` | ✅ |
-| CLI / tóm tắt bằng Jinja2 | `python -m ci_classifier ...`, `templates/report.md.j2` | ✅ |
-| Link tới runbook | `config.toml [runbooks]`, `docs/runbooks/` | ✅ runbook mẫu |
-| Precision/recall theo loại, abstention | `evaluate` | ✅ |
-| Triage time | `triage` + mục "Triage time" trong báo cáo | ✅ |
-| Adapter `httpx` tải artifact CI | — | ⏸ chỉ làm **sau khi** bộ phân loại offline chạy tốt |
+Có 6 loại lỗi: `compilation`, `test_assertion`, `dependency`, `authentication`, `infrastructure`, `other`.
+Khi không đủ chắc chắn, bộ phân loại trả về `unknown` (abstain) thay vì đoán bừa.
 
-`fetch` dùng `gh` CLI để **thu thập bộ dữ liệu một lần**, không phải adapter tích hợp với CI thật.
+Dự án so sánh ba cách tiếp cận trên cùng một tập test cố định, có khoảng tin cậy và kiểm định thống kê:
+
+1. **Luật từ khóa** (regex)
+2. **TF-IDF + logistic regression** (scikit-learn)
+3. **LLM** qua [OpenRouter](https://openrouter.ai) (chỉ dùng model miễn phí), cùng một bản **hybrid**: dùng LLM trước,
+   TF-IDF trả lời thay khi LLM không chắc.
+
+Toàn bộ dữ liệu là log **công khai**: GitHub Actions của các repo mã nguồn mở và bộ dữ liệu [LogChunks](https://doi.org/10.5281/zenodo.3632351) (Travis CI).
+
+## Kết quả
+
+Tập test gồm 291 mẫu (chia theo repo/workflow, không mẫu nào trùng nhóm với train). Khoảng tin cậy 95% tính bằng
+bootstrap theo nhóm workflow. Báo cáo đầy đủ: [`results/20260916-091707/report.md`](results/20260916-091707/report.md).
+
+| Phương pháp | Accuracy [95% CI] | Macro F1 [95% CI] | Tỉ lệ `unknown` | Accuracy khi có trả lời |
+| --- | --- | --- | --- | --- |
+| Luật từ khóa | 0.34 [0.23, 0.46] | 0.46 [0.27, 0.54] | 0.57 | 0.79 |
+| TF-IDF + logistic regression | 0.56 [0.43, 0.69] | 0.30 [0.23, 0.44] | 0.00 | 0.56 |
+| LLM (`nvidia/nemotron-3-super-120b-a12b:free`) | 0.74 [0.63, 0.84] | **0.74** [0.63, 0.83] | 0.08 | 0.80 |
+| Hybrid (LLM, TF-IDF khi LLM trả `unknown`) | **0.77** [0.66, 0.86] | 0.73 [0.62, 0.83] | 0.00 | 0.77 |
+
+- **Kiểm định McNemar** trên cùng 291 mẫu cho thấy LLM hơn TF-IDF (p ≈ 5e-5), TF-IDF hơn luật (p ≈ 2e-10), và hybrid hơn
+  LLM (p = 0.004): hybrid đúng thêm 9 mẫu mà không sai thêm mẫu nào.
+- **Cross-validation 5 lần theo nhóm** trên toàn bộ 944 mẫu cho kết quả cùng thứ tự. Accuracy lần lượt là: luật 0.42 ± 0.10,
+  TF-IDF 0.61 ± 0.06, LLM 0.71 ± 0.07 và hybrid 0.76 ± 0.08. Riêng LLM và hybrid chỉ được chấm trên 333 mẫu đã có câu trả lời.
+- **Luật từ khóa** thường đúng khi đã chịu trả lời (0.79), nhưng bỏ qua hơn nửa số mẫu.
+- **Chi phí LLM:** mỗi mẫu tốn khoảng 1.5k token prompt và 300 token trả lời, độ trễ trung vị 4.5 giây, chi phí 0 USD
+  vì dùng model miễn phí. Có 8/291 câu trả lời không đọc được thành JSON.
+
+### Nên đọc các con số này thế nào
+
+- **Khoảng tin cậy rộng** (khoảng ±0.1) vì tập test chỉ có 43 nhóm workflow.
+- **Nhãn ban đầu do một LLM (Claude) gán nháp**, sau đó được một người duyệt. Một hội đồng gồm 3 LLM khác soát lại
+  toàn bộ tập test (Fleiss' kappa 0.89), và người phân xử 37 mẫu bị tranh cãi. Người duyệt đã nhìn thấy nhãn nháp nên
+  có thể bị ảnh hưởng theo nhãn đó, vì vậy điểm của LLM có thể hơi cao. Con số thận trọng hơn là
+  **LLM đúng 0.80 trên 171 mẫu mà cả hội đồng đồng ý**.
+- **Ý tưởng hybrid được chọn sau khi đã thấy kết quả trên tập test**, nên điểm test của hybrid có thể hơi lạc quan.
+- Phần lớn dữ liệu là log Travis CI từ khoảng năm 2019. Tập test chỉ có 62 mẫu GitHub Actions, và trên các mẫu này điểm
+  của TF-IDF thấp hơn hẳn.
+- Loại lỗi khó nhất là `infrastructure`: LLM chỉ đạt F1 0.39 và hay nhầm loại này với `test_assertion`.
+
+Chi tiết nằm trong [`docs/reports/`](docs/reports/), gồm cả các hướng **đã thử nhưng không cải thiện**, như prompt v2
+và bộ lai "luật + LLM".
 
 ## Cài đặt
 
-Cần Python 3.11+ và [GitHub CLI](https://cli.github.com/) đã đăng nhập (`gh auth login`).
+Cần Python 3.11 trở lên. Nếu muốn tự tải log từ GitHub Actions, cần thêm [GitHub CLI](https://cli.github.com/) đã đăng nhập bằng `gh auth login`.
 
-```powershell
+```bash
+git clone https://github.com/HuyHoangTran05/au2-ci-failure-classifier.git
+cd au2-ci-failure-classifier
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1          # từ giờ "python" là Python của .venv
+source .venv/bin/activate            # Windows: .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-pytest                                 # kiểm tra mọi thứ chạy được
+pytest                               # test không gọi mạng, không cần API key
 ```
 
-Nếu PowerShell chặn `Activate.ps1`, chạy trực tiếp: `.\.venv\Scripts\python.exe -m ci_classifier ...`
+### API key cho LLM (không bắt buộc)
 
-### API key cho LLM
-
-Phương pháp LLM gọi [OpenRouter](https://openrouter.ai) và chỉ dùng model miễn phí (đuôi `:free`, chọn trong
-`config.toml [llm]`). Tạo file `.env` ở thư mục này (đã nằm trong `.gitignore`, **không bao giờ commit**):
+Phương pháp `llm` và `hybrid` cần một key [OpenRouter](https://openrouter.ai/keys). Hãy tạo file `.env` ở thư mục gốc.
+File này đã có trong `.gitignore`, **đừng commit nó**:
 
 ```
 OPENROUTER_API_KEY=sk-or-v1-...
 ```
 
-Giới hạn cần biết: model miễn phí bị giới hạn số lượt mỗi phút và mỗi ngày, và đôi khi bị nhà cung cấp chặn tạm thời.
-Vì vậy mọi câu trả lời được lưu trong `data/llm_predictions.jsonl` (theo model, phiên bản prompt và mã băm đoạn log);
-`llm-run` bỏ qua mẫu đã có câu trả lời, còn `evaluate` chỉ đọc file này và chấm LLM trên các mẫu đã trả lời.
-Log công khai gửi lên OpenRouter là chấp nhận được; **log nội bộ DMS thì phải hỏi mentor trước**.
+Phương pháp `rules` và `tfidf` chạy hoàn toàn offline, không cần key.
 
-## Quy trình
+Cần biết về model miễn phí: chúng bị giới hạn số lượt gọi mỗi phút và mỗi ngày, đôi khi còn bị nhà cung cấp chặn tạm thời.
+Vì vậy mọi câu trả lời đều được lưu vào `data/llm_predictions.jsonl`, theo model, phiên bản prompt và mã băm của đoạn log.
+Lần sau, `llm-run` bỏ qua những mẫu đã có câu trả lời. Còn `evaluate` chỉ đọc file này, không gọi API.
 
-Tất cả lệnh chạy trong thư mục này, sau khi đã kích hoạt `.venv`. Gõ `python -m ci_classifier` để xem danh sách lệnh.
+> ⚠️ Log CI có thể chứa đường dẫn nội bộ, tên máy hoặc token bị lộ. Đừng gửi log không công khai lên LLM bên ngoài nếu chưa
+> được phép và chưa che thông tin nhạy cảm.
 
-```powershell
-# 1. Tải log các run bị fail (danh sách repo trong config.toml). Chạy lại được nếu bị ngắt giữa chừng.
+## Sử dụng
+
+### Phân loại một log
+
+```bash
+gh run view <run-id> -R owner/repo --log-failed > job.log
+
+python -m ci_classifier classify job.log                   # mặc định: luật từ khóa
+python -m ci_classifier classify job.log --method tfidf    # rules | tfidf | llm | hybrid
+python -m ci_classifier classify job.log --json            # xuất JSON cho công cụ khác
+```
+
+Phương pháp `tfidf` và `hybrid` học từ dữ liệu đã gán nhãn trong `data/`. Repo đã có sẵn nhãn, nhưng đoạn log cắt sẵn
+thì không, nên cần chạy bước `excerpt` trong phần [Tái tạo kết quả](#tái-tạo-kết-quả) trước.
+
+### Demo trên trình duyệt
+
+Dán log vào trang, chọn phương pháp và xem kết quả của các phương pháp cạnh nhau:
+
+```bash
+python -m ci_classifier demo                       # mở http://127.0.0.1:8000
+python -m ci_classifier demo --port 8123 --no-browser
+```
+
+Gõ `python -m ci_classifier` để xem toàn bộ lệnh, và `python -m ci_classifier <lệnh> -h` để xem tuỳ chọn của từng lệnh.
+
+## Cách hoạt động
+
+```
+log CI (vài MB)  ──excerpt──▶  đoạn cắt (≤ 300 dòng)  ──▶  rules / tfidf / llm / hybrid  ──▶  loại lỗi + bằng chứng + runbook
+```
+
+1. **Cắt log** (`excerpt.py`). Log của một job có thể dài hàng chục MB. Bước này giữ lại cửa sổ dòng ngay trước các dấu
+   `##[error]` và một số dòng "đáng chú ý" trong toàn bộ job. **Cả ba phương pháp đều chỉ nhìn thấy đoạn cắt này.**
+   Trên LogChunks, 56% đoạn cắt chứa trọn đoạn lỗi do con người đánh dấu, và độ phủ dòng trung bình là 68%. Có thể thử
+   cách cắt khác bằng biến môi trường `CI_EXCERPT_PROFILE`: `wide80` lấy cửa sổ rộng hơn, `diff` bỏ các dòng cũng xuất
+   hiện trong lần chạy thành công gần nhất.
+2. **Phân loại**:
+   - `rules.py`: regex theo từng loại lỗi, trả `unknown` khi không khớp luật nào.
+   - `tfidf.py`: TF-IDF + logistic regression, trả `unknown` khi xác suất cao nhất dưới ngưỡng. Ngưỡng này được chọn
+     bằng cross-validation, chỉ dùng tập train (`tune-tfidf`).
+   - `llm.py`: gửi prompt yêu cầu model trả JSON gồm loại lỗi, độ tự tin và dòng bằng chứng.
+3. **Runbook**: `config.toml [runbooks]` ánh xạ từng loại lỗi tới một file trong `docs/runbooks/`. Các runbook hiện có
+   chỉ là bản mẫu; hãy thay bằng runbook thật của nhóm bạn.
+
+## Tái tạo kết quả
+
+Log thô không được lưu trong repo vì quá nặng, nhưng có thể tải lại. Nhãn, cách chia train/test và câu trả lời của LLM
+thì đã được commit sẵn.
+
+```bash
+# 1. Tải log các run bị fail (danh sách repo trong config.toml). Bị ngắt giữa chừng thì chạy lại để làm tiếp.
 python -m ci_classifier fetch
+python -m ci_classifier import-logchunks        # 797 log Travis CI từ Zenodo, có kiểm tra checksum
 
-# 2. Cắt mỗi log (có thể vài chục MB) còn vài trăm dòng quan trọng -> data/excerpts/
+# 2. Cắt log -> data/excerpts/
 python -m ci_classifier excerpt
+python -m ci_classifier excerpt-eval            # độ phủ đoạn lỗi LogChunks
 
-# 2b. (Tuỳ chọn) Thêm 797 log Travis CI từ bộ LogChunks, đã có sẵn đoạn lỗi do con người đánh dấu
-python -m ci_classifier import-logchunks
-python -m ci_classifier excerpt-eval                    # đo đoạn cắt giữ được bao nhiêu đoạn lỗi đã đánh dấu
+# 3. Chấm điểm trên tập test -> results/<thời gian>/report.md, metrics.json, predictions.csv
+python -m ci_classifier evaluate
+python -m ci_classifier evaluate --cv 5         # thêm cross-validation 5 lần theo nhóm
+```
 
-# 2c. (Tuỳ chọn) Tải run thành công gần nhất cho profile cắt log "diff"
-python -m ci_classifier fetch-baselines --labelled-only --workers 4
+Log GitHub Actions chỉ được giữ trong một thời gian giới hạn, nên một số run cũ có thể không còn tải được.
+Khi đó `evaluate` sẽ chấm trên ít mẫu hơn con số trong bảng.
 
-# 3. Gán nhãn bằng tay (đọc docs/labeling-guide.md trước). Mục tiêu: 200-300 mẫu GitHub Actions.
-python -m ci_classifier label --source logchunks       # nhanh: chỉ cần đọc đoạn lỗi đã đánh dấu
+<details>
+<summary>Quy trình đầy đủ: gán nhãn, kiểm tra nhãn, chia dữ liệu, tinh chỉnh</summary>
+
+```bash
+# Gán nhãn bằng tay (đọc docs/labeling-guide.md trước)
+python -m ci_classifier label --source logchunks       # nhanh: đã có đoạn lỗi do người đánh dấu làm gợi ý
 python -m ci_classifier label --source github-actions
-python -m ci_classifier label --review                 # duyệt nhãn nháp (labeler = claude-draft)
+python -m ci_classifier label --review                 # duyệt nhãn nháp
 
-# 3b. Kiểm tra độ tin cậy của nhãn khi chỉ có một người: gán mù lại 80 mẫu test, đo kappa, phân xử bất đồng
+# Kiểm tra độ tin cậy của nhãn: tự gán mù lại một phần tập test, đo Cohen's kappa, phân xử chỗ bất đồng
 python -m ci_classifier label --blind --labeler <tên> --count 80
 python -m ci_classifier agreement --labeler <tên>
 python -m ci_classifier label --adjudicate --labeler <tên>
 
-# 3c. Hoặc: hội đồng 3 LLM gán lại 80 mẫu đó, người chỉ phân xử mẫu bị tranh cãi (xem docs/labeling-guide.md)
+# Hoặc để hội đồng 3 LLM gán lại, người chỉ phân xử các mẫu bị tranh cãi
 python -m ci_classifier panel-run
 python -m ci_classifier panel-report
 python -m ci_classifier label --adjudicate --panel --labeler <tên>
 
-# 4. Chia train/test MỘT LẦN, sau khi đã gán nhãn xong
+# Chia train/test MỘT LẦN, sau khi gán nhãn xong
 python -m ci_classifier split
 
-# 5. Cải thiện luật từ khóa, CHỈ nhìn vào tập train; thêm mỗi lỗi đã sửa vào tests/regression_cases.jsonl
-python -m ci_classifier rules --split train
-pytest
+# Tinh chỉnh, CHỈ nhìn tập train
+python -m ci_classifier rules --split train            # thêm mỗi lỗi đã sửa vào tests/regression_cases.jsonl
+python -m ci_classifier tune-tfidf                      # chép ngưỡng tìm được vào config.toml [tfidf]
+python -m ci_classifier fetch-baselines --labelled-only --workers 4   # cần cho profile cắt log "diff"
 
-# 5a. Chọn ngưỡng abstain của TF-IDF bằng cross-validation trên train; chép giá trị vào config.toml [tfidf]
-python -m ci_classifier tune-tfidf
+# Hỏi LLM (chạy lại để làm tiếp khi hết lượt trong ngày)
+python -m ci_classifier llm-run --limit 40
 
-# 5b. Hỏi LLM về các mẫu test (lưu vào data/llm_predictions.jsonl; chạy lại để làm tiếp nếu hết lượt trong ngày)
-python -m ci_classifier llm-run
-
-# 6. Chấm điểm trên tập test -> results/<thời gian>/report.md, metrics.json, predictions.csv
-#    Báo cáo có khoảng tin cậy 95% (bootstrap theo nhóm) và kiểm định McNemar giữa các phương pháp.
-python -m ci_classifier evaluate
-python -m ci_classifier evaluate --cv 5    # thêm cross-validation 5 lần theo nhóm -> cv_folds.csv
-
-# 7. Đo triage time: người phân loại có/không có gợi ý (tốt nhất nhờ người KHÔNG gán nhãn làm)
+# Đo thời gian triage của người khi có và không có gợi ý (nên nhờ người KHÔNG tham gia gán nhãn)
 python -m ci_classifier triage --participant <tên> --count 20
-python -m ci_classifier evaluate      # báo cáo có thêm mục "Triage time"
 ```
 
-Phân loại một log bất kỳ (đây là MVP của đề bài):
+Mẫu `authentication` rất hiếm, nên đã được bổ sung bằng tìm kiếm có mục tiêu
+(`fetch --workflow-filter ... --require <regex> --tag targeted-auth`). Các mẫu này mang trường
+`retrieval: targeted-auth` và được báo cáo riêng, vì chúng được chọn bằng từ khóa nên luật từ khóa được lợi.
 
-```powershell
-gh run view <run-id> -R owner/repo --log-failed > job.log
-python -m ci_classifier classify job.log          # loại lỗi + dòng bằng chứng + runbook
-python -m ci_classifier classify job.log --json   # kết quả dạng JSON cho công cụ khác
-python -m ci_classifier classify job.log --method hybrid   # LLM, TF-IDF trả lời thay khi LLM không chắc
-```
-
-Bản demo trên trình duyệt (dán log, chọn phương pháp, xem kết quả cạnh nhau) — dùng khi trình bày:
-
-```powershell
-python -m ci_classifier demo              # mở http://127.0.0.1:8000
-python -m ci_classifier demo --port 8123 --no-browser
-```
+</details>
 
 ## Dữ liệu
 
-| Nguồn | Số mẫu | Ghi chú |
+| Nguồn | Số mẫu có nhãn | Ghi chú |
 | --- | --- | --- |
-| GitHub Actions (`fetch`) | tuỳ cấu hình (~300) | Log mới, đúng định dạng mục tiêu. **Tập test chính nên dựa trên nguồn này.** |
-| [LogChunks](https://doi.org/10.5281/zenodo.3632351) (`import-logchunks`) | 797 | Travis CI khoảng năm 2019, 80 repo, 29 ngôn ngữ. Mỗi log có đoạn lỗi do con người đánh dấu, nhưng **không có loại lỗi**, nên vẫn phải gán nhãn (nhanh hơn nhiều). |
+| GitHub Actions (`fetch`) | 194 | Log gần đây từ `dotnet/aspire`, `microsoft/vscode`, `python/cpython`, `grafana/grafana`, ... |
+| [LogChunks](https://doi.org/10.5281/zenodo.3632351) (`import-logchunks`) | 750 | Travis CI khoảng năm 2019, 80 repo, 29 ngôn ngữ |
 
-LogChunks: Brandt, Panichella, Zaidman, Beller, *"LogChunks: A Data Set for Build Log Analysis"*, MSR 2020,
-license CC BY 4.0. Bộ phân loại **không bao giờ thấy** đoạn lỗi đã đánh dấu; đoạn đó chỉ là gợi ý khi gán nhãn.
+Có 653 mẫu train và 291 mẫu test. Dữ liệu được chia theo nhóm (repo, workflow) và phân tầng theo (nguồn, loại lỗi).
 
-Các dataset khác đã xem nhưng không dùng:
-- [Zheng et al., TOSEM 2025](https://github.com/zhengly1/workflow_failure): 375 job có nhãn, nhưng không kèm log và log gốc đã bị xoá. Chỉ dùng tham khảo cách chia loại lỗi.
+| File trong `data/` | Nội dung |
+| --- | --- |
+| `manifest.jsonl` | danh sách mẫu và nguồn gốc |
+| `labels.jsonl` | nhãn; trường `labeler` cho biết nhãn do người gán hay là nhãn nháp |
+| `split.json` | cách chia train/test cố định |
+| `llm_predictions.jsonl` | câu trả lời của LLM đã lưu lại |
+| `panel_labels.jsonl` | câu trả lời của hội đồng LLM |
+| `blind_labels.jsonl` | nhãn gán mù |
+
+Các file `.jsonl` chỉ được ghi thêm (append-only): nếu một `sample_id` xuất hiện nhiều lần, bản ghi sau cùng được dùng.
+Định nghĩa các loại lỗi và quy tắc khi phân vân nằm trong [`docs/labeling-guide.md`](docs/labeling-guide.md).
+
+**LogChunks:** Brandt, Panichella, Zaidman, Beller. *"LogChunks: A Data Set for Build Log Analysis"*, MSR 2020.
+Bộ dữ liệu dùng giấy phép [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Bộ phân loại **không bao giờ
+thấy** đoạn lỗi do người đánh dấu; đoạn đó chỉ được dùng làm gợi ý khi gán nhãn và để đo chất lượng bước cắt log.
+
+Các bộ dữ liệu đã xem xét nhưng không dùng:
+- [Zheng et al., TOSEM 2025](https://github.com/zhengly1/workflow_failure): không kèm log, và log gốc đã bị xoá.
 - [GHALogs](https://doi.org/10.5281/zenodo.10154920): 142 GB, không có nhãn.
-- Java Travis MSR'17: nhãn sinh tự động bằng regex, không dùng làm đáp án được.
+- Java Travis MSR'17: nhãn được sinh tự động bằng regex, nên không dùng làm đáp án được.
 
-Chất lượng bước `excerpt` trên LogChunks (đoạn lỗi đã đánh dấu có nằm trọn trong đoạn cắt không), đo bằng
-`excerpt-eval`: 446/797 log (56%), độ phủ dòng trung bình 68%. Nguyên nhân bỏ sót chính là đoạn lỗi nằm xa dấu lỗi.
+## Nguyên tắc đánh giá
 
-### Profile cắt log
-
-`config.toml [excerpt.profiles.<tên>]` định nghĩa các cách cắt thử nghiệm; chọn bằng biến môi trường `CI_EXCERPT_PROFILE`
-(mọi lệnh đều đọc biến này, đoạn cắt lưu riêng vào `data/excerpts-<tên>/`):
-- `wide80`: cửa sổ 80 dòng trước dấu lỗi.
-- `diff`: bỏ các dòng cũng có trong run thành công gần nhất (cần `fetch-baselines` trước).
-- `hints`: chọn cụm dòng có từ khoá lỗi (kết quả kém hơn mặc định, chỉ để tham khảo).
-
-### Nhãn nháp
-
-Mỗi nhãn trong `data/labels.jsonl` có trường `labeler`:
-- `claude-draft`: Claude gán dựa trên đoạn lỗi LogChunks, kèm lý do ngắn trong `note`. **Chưa được người kiểm tra.**
-- `human`: người gán, hoặc người đã duyệt nhãn nháp (`note` ghi `reviewed: kept draft` hoặc `reviewed: changed from ...`).
-  Nếu nhãn nháp được kiểm tra bên ngoài công cụ, `label --accept-drafts <tên>` ghi nhận toàn bộ với
-  `note` = `reviewed: bulk accepted by <tên>`, để vẫn phân biệt được với duyệt từng mẫu.
-
-Báo cáo `evaluate` cảnh báo nếu tập test còn nhãn nháp. Nhãn nháp do một LLM viết, nên khi so sánh
-với phương pháp LLM, kết quả có thể bị thiên vị: hãy duyệt hết nhãn của tập test trước khi báo cáo.
-
-Tóm tắt pain point và câu hỏi cho mentor: [`docs/pain-points.html`](docs/pain-points.html).
-Slide trình bày (Canva, chỉ xem): https://canva.link/hhdbap2eg798si0
-Báo cáo duyệt nhãn và kiểm định thống kê: [`docs/reports/2026-09-15-label-review-and-statistics.md`](docs/reports/2026-09-15-label-review-and-statistics.md).
-Báo cáo cải thiện bước cắt log: [`docs/reports/2026-09-15-excerpt-improvement.md`](docs/reports/2026-09-15-excerpt-improvement.md).
-Báo cáo ngưỡng TF-IDF và bộ phân loại lai: [`docs/reports/2026-09-15-tfidf-threshold-and-hybrid.md`](docs/reports/2026-09-15-tfidf-threshold-and-hybrid.md).
-Báo cáo hội đồng LLM kiểm tra nhãn: [`docs/reports/2026-09-15-llm-panel.md`](docs/reports/2026-09-15-llm-panel.md).
-Báo cáo prompt v2 (kết quả âm tính): [`docs/reports/2026-09-16-prompt-v2.md`](docs/reports/2026-09-16-prompt-v2.md).
-
-## Kết quả hiện tại (15/09/2026)
-
-Dữ liệu: 944 mẫu có nhãn (194 GitHub Actions, 750 LogChunks), toàn bộ đã được người duyệt (nhãn nháp do Claude gán,
-HuyHoangTran kiểm tra và giữ nguyên). Chia theo (repo, workflow), phân tầng theo (nguồn, loại lỗi): 653 train / 291 test.
-Báo cáo đầy đủ nằm trong `results/`.
-
-**Tập test cố định (291 mẫu)**, khoảng tin cậy 95% bằng bootstrap theo nhóm workflow (`results/20260916-091707/`,
-sau khi hội đồng LLM soát toàn bộ tập test và người phân xử cả 37 mẫu bị tranh cãi):
-
-| Phương pháp | Accuracy [95% CI] | Macro F1 [95% CI] | Abstention (unknown) | Accuracy khi trả lời |
-| --- | --- | --- | --- | --- |
-| Luật từ khóa | 0.34 [0.23, 0.46] | 0.46 [0.27, 0.54] | 0.57 | 0.79 |
-| TF-IDF + logistic regression (ngưỡng 0.2) | 0.56 [0.43, 0.69] | 0.30 [0.23, 0.44] | 0.00 | 0.56 |
-| LLM `nvidia/nemotron-3-super-120b-a12b:free` (prompt v1) | 0.74 [0.63, 0.84] | **0.74** [0.63, 0.83] | 0.08 | 0.80 |
-| Hybrid: LLM, TF-IDF khi LLM trả `unknown` | **0.77** [0.66, 0.86] | 0.73 [0.62, 0.83] | 0.00 | 0.77 |
-
-**Kiểm định McNemar** (cùng 291 mẫu): LLM hơn TF-IDF (p ≈ 5e-5), TF-IDF hơn luật (p ≈ 2e-10),
-hybrid hơn LLM (đúng thêm 9 mẫu, không sai thêm mẫu nào, p = 0.004).
-
-**Cross-validation 5 lần theo nhóm** trên toàn bộ 944 mẫu (mean ± sd):
-
-| Phương pháp | Accuracy | Macro F1 | Abstention |
-| --- | --- | --- | --- |
-| Luật từ khóa (lạc quan: luật được sửa trên chính các mẫu train) | 0.42 ± 0.10 | 0.52 ± 0.11 | 0.49 |
-| TF-IDF | 0.61 ± 0.06 | 0.42 ± 0.11 | 0.00 |
-| LLM (chỉ 333 mẫu đã có câu trả lời) | 0.71 ± 0.07 | 0.66 ± 0.07 | 0.08 |
-| Hybrid (cùng 333 mẫu) | 0.76 ± 0.08 | 0.69 ± 0.09 | 0.00 |
-
-Cách đọc:
-- Khoảng tin cậy **rộng** (khoảng ±0.1) vì tập test chỉ có 43 nhóm workflow: cần thêm dữ liệu để kết luận chi tiết.
-- **Ngưỡng TF-IDF đã đổi từ 0.4 sang 0.2** (chọn bằng `tune-tfidf`, chỉ nhìn train). Ngưỡng cũ khiến TF-IDF trả
-  `unknown` cho 73% mẫu test, nên kết quả trước đây (0.23, "luật ≈ TF-IDF") là do ngưỡng chứ không phải do phương pháp.
-  TF-IDF vẫn yếu ở các loại hiếm (macro F1 0.29) và trên log GitHub Actions (0.32).
-- **Luật từ khóa đã sửa** (chỉ nhìn train): train 0.26 → 0.45 nhưng test chỉ 0.30 → 0.34, tức luật mới khớp nhiều
-  lỗi riêng của các repo trong train. Xem [`docs/reports/2026-09-15-rules-ci-and-llm-train.md`](docs/reports/2026-09-15-rules-ci-and-llm-train.md).
-- LLM trên 40 mẫu GitHub Actions của **train** chỉ khớp nhãn 0.58 (test: 0.69), nên con số test của LLM trên log
-  GitHub Actions có thể lạc quan.
-- ⚠️ Ý tưởng hybrid được chọn sau khi thử trên tập test, nên con số test có thể hơi lạc quan. Chi tiết:
-  [`docs/reports/2026-09-15-tfidf-threshold-and-hybrid.md`](docs/reports/2026-09-15-tfidf-threshold-and-hybrid.md).
-- LLM: khoảng 1.5k token prompt + 300 token trả lời mỗi mẫu, độ trễ trung vị 4.5 giây, chi phí 0 USD. 8/291 câu trả
-  lời không đọc được JSON. Loại yếu nhất là `infrastructure` (F1 0.39), hay nhầm với `test_assertion`.
-- **Kiểm tra nhãn bằng hội đồng 3 LLM** (208 mẫu test khác nhau, không dùng Claude hay Nemotron): mỗi model đồng ý với
-  nhãn nháp 84–88% (kappa 0.77–0.83), Fleiss' kappa 0.89; 37 mẫu bị tranh cãi đã được người phân xử.
-- ⚠️ **Điểm ở nhóm mẫu tranh cãi chưa độc lập với LLM:** ứng viên nhãn do hội đồng LLM đưa ra và người phân xử làm nhanh
-  (trung vị 8 giây/mẫu). Con số đáng tin hơn là **LLM đúng 0.80 trên 171 mẫu hội đồng xác nhận**. Xem [`docs/reports/2026-09-15-llm-panel.md`](docs/reports/2026-09-15-llm-panel.md).
-- ⚠️ Nhãn ban đầu do một LLM (Claude) gán rồi người duyệt giữ nguyên. Duyệt khi đã thấy nhãn nháp dễ bị ảnh hưởng
-  theo nhãn đó, nên điểm LLM vẫn có thể hơi cao. Chưa có người thứ hai, nên dùng `label --blind` để tự gán mù lại
-  80 mẫu test rồi `agreement` để đo Cohen's kappa (xem `docs/labeling-guide.md`).
-
-Mẫu `authentication` rất hiếm nên đã được bổ sung bằng tìm kiếm có mục tiêu:
-`fetch --workflow-filter ... --require <regex lỗi xác thực> --tag targeted-auth`. Trong 38 log khớp từ khóa, chỉ 12 log
-là lỗi xác thực thật. Các mẫu này mang `retrieval: targeted-auth` và được báo cáo tách riêng, vì được chọn bằng từ khóa
-nên luật từ khóa đạt điểm cao bất thường trên chúng. Kết quả trên **không so được** với lần chấm trước vì tập test đã đổi.
-
-Hướng cải thiện tiếp theo: chạy LLM trên nhiều mẫu train hơn để có nền so sánh đủ lớn cho prompt, cắt log tốt hơn
-(so với lần chạy thành công gần nhất), và bổ sung mẫu `infrastructure` (loại yếu nhất, F1 0.43).
-
-Các hướng **đã thử và không dùng** (ghi lại để khỏi làm lại): bộ lai "luật cho `authentication`/`compilation` → LLM"
-kém hơn LLM một chút (0.698 so với 0.708); prompt v2 với quy tắc ranh giới và 4 ví dụ từ train chỉ hơn v1 đúng 1 mẫu
-trên 42 mẫu train (p = 1.0), macro F1 thấp hơn và tốn thêm 27% token.
-
-## Nguyên tắc để kết quả đáng tin
-
-- **Không bao giờ chỉnh luật hay ngưỡng khi đang nhìn tập test.** Làm vậy thì điểm test không còn ý nghĩa.
-- **Train/test chia theo (repo, workflow).** Các run của cùng một workflow có log gần giống nhau; nếu
-  chúng nằm cả hai bên thì điểm TF-IDF sẽ cao ảo.
-- `unknown` được tính là sai trong accuracy, nhưng báo riêng thành "abstention rate". Một bộ phân loại
-  biết nói "không chắc" có ích hơn một bộ đoán bừa.
-- Mỗi báo cáo lưu cấu hình, số mẫu và mã băm của `labels.jsonl`, để biết nó được tạo từ dữ liệu nào.
-- Kết quả "không cải thiện" cũng là kết quả có giá trị. Hãy ghi lại, đừng giấu.
+- **Không chỉnh luật, ngưỡng hay prompt khi đang nhìn tập test.** Mọi tinh chỉnh chỉ dựa trên tập train.
+- **Chia train/test theo (repo, workflow).** Các run của cùng một workflow có log gần giống nhau, nên nếu chúng nằm ở
+  cả hai phía thì điểm của TF-IDF sẽ cao ảo.
+- **`unknown` được tính là sai** khi tính accuracy, nhưng tỉ lệ abstain được báo cáo riêng.
+- **Mỗi báo cáo ghi lại** cấu hình, số mẫu và mã băm của `labels.jsonl` đã dùng.
+- **Kết quả không cải thiện cũng được ghi lại** trong `docs/reports/`.
 
 ## Cấu trúc
 
 ```
-config.toml                 loại lỗi, runbook, repo cần tải, thông số cắt log, tỉ lệ chia, ngưỡng
+config.toml                 loại lỗi, runbook, repo cần tải, thông số cắt log, split, TF-IDF, LLM
 ci_classifier/
   __main__.py               CLI: python -m ci_classifier <lệnh>
-  fetch.py                  tải log bằng gh -> data/raw/*.log.gz + data/manifest.jsonl
-  logchunks.py              nhập bộ LogChunks (tải từ Zenodo, kiểm tra checksum)
-  excerpt.py                cắt log -> data/excerpts/*.txt (chiến lược marker / hints / baseline-diff)
-  excerpt_eval.py           đo độ phủ đoạn lỗi LogChunks và lý do bỏ sót
-  baselines.py              tải run thành công gần nhất -> data/baselines/, data/baselines.jsonl
-  label.py                  công cụ gán nhãn -> data/labels.jsonl; --blind -> data/blind_labels.jsonl; --adjudicate
-  agreement.py              nhãn mù so với nhãn nháp: Cohen's kappa, ma trận nhầm, độ thiên vị của từng phương pháp
-  panel.py                  hội đồng LLM gán lại mẫu lượt mù -> data/panel_labels.jsonl; Fleiss' kappa, danh sách phân xử
-  split.py                  chia train/test -> data/split.json
-  rules.py                  baseline 1: luật regex
-  tfidf.py                  baseline 2: TF-IDF + logistic regression
-  llm.py                    phương pháp 3: LLM qua OpenRouter, lưu câu trả lời -> data/llm_predictions.jsonl
-  tune_tfidf.py             chọn ngưỡng abstain của TF-IDF bằng cross-validation trên train
-  methods.py                tạo bộ phân loại theo tên phương pháp; hybrid = LLM, TF-IDF khi LLM trả unknown
-  classify.py               phân loại một log đã lưu + runbook
-  triage.py                 đo thời gian triage của người -> data/triage_sessions.jsonl
-  evaluate.py               metrics bằng pandas, báo cáo bằng Jinja2
-  stats.py                  khoảng tin cậy bootstrap theo nhóm, kiểm định McNemar
-  crossval.py               cross-validation theo nhóm, phân tầng theo (nguồn, loại lỗi)
-  templates/report.md.j2    mẫu báo cáo
-docs/labeling-guide.md      định nghĩa nhãn và quy tắc khi phân vân
-docs/runbooks/              runbook mẫu cho từng loại lỗi
-tests/                      pytest; regression_cases.jsonl = log thật phải phân loại đúng
+  fetch.py, logchunks.py    thu thập log -> data/raw/, data/manifest.jsonl
+  baselines.py              tải lần chạy thành công gần nhất (cho profile "diff")
+  excerpt.py, excerpt_eval.py  cắt log và đo chất lượng đoạn cắt
+  label.py, split.py        gán nhãn, chia train/test theo nhóm
+  agreement.py, panel.py    kiểm tra nhãn: Cohen's kappa, hội đồng LLM, Fleiss' kappa
+  rules.py                  phương pháp 1: luật regex
+  tfidf.py, tune_tfidf.py   phương pháp 2: TF-IDF + logistic regression và chọn ngưỡng
+  llm.py                    phương pháp 3: LLM qua OpenRouter, có lưu câu trả lời
+  methods.py                tạo bộ phân loại theo tên, gồm cả hybrid
+  classify.py, demo.py      phân loại một log (CLI) và bản demo trên trình duyệt
+  evaluate.py, stats.py, crossval.py  metrics, bootstrap CI, McNemar, cross-validation
+  triage.py                 đo thời gian triage của người
+  templates/                mẫu báo cáo Jinja2
+docs/
+  labeling-guide.md         định nghĩa nhãn
+  runbooks/                 runbook mẫu cho từng loại lỗi
+  reports/                  báo cáo các thí nghiệm
+results/                    báo cáo sinh ra bởi evaluate
+tests/                      pytest; regression_cases.jsonl là các log thật phải được phân loại đúng
 ```
 
-`data/raw/` và `data/excerpts/` tái tạo được nên không cần lưu vào git. `labels.jsonl`, `split.json`,
-`manifest.jsonl`, `blind_labels.jsonl` và `triage_sessions.jsonl` là công sức của bạn, **phải giữ lại**.
+## Hạn chế và hướng tiếp theo
+
+- Mới hỗ trợ định dạng log của GitHub Actions và Travis CI; chưa có adapter cho GitLab CI hay Azure DevOps.
+- Chưa có bước che thông tin nhạy cảm trước khi gửi log lên LLM.
+- Chỉ có một người gán nhãn; cần thêm người thứ hai gán mù để kiểm tra độ tin cậy của nhãn.
+- Cần thêm mẫu GitHub Actions, đặc biệt cho loại `infrastructure` và `authentication`.
+
+## Giấy phép
+
+Mã nguồn phát hành theo giấy phép [MIT](LICENSE). Bộ dữ liệu LogChunks thuộc giấy phép CC BY 4.0 của các tác giả gốc. Log GitHub Actions thuộc về các repo tương ứng.
