@@ -44,7 +44,10 @@ Tài liệu bàn giao để một phiên làm việc mới (người hoặc Clau
 > - **16/09:** người dùng đã phân xử cả 37 mẫu tranh cãi (10 giữ nháp, 11 theo đa số, 8 nhãn thứ ba; trung vị 8 giây/mẫu - nhanh).
 >   Test (`results/20260916-091707/`): luật 0.34, TF-IDF 0.56, LLM **0.74**, hybrid **0.77**. Điểm LLM ở nhóm tranh cãi
 >   tăng từ 10/37 lên 19/37 → ghi rõ là chưa độc lập với LLM; con số đáng tin hơn: LLM 0.80 trên 171 mẫu confirmed.
-> - **Việc tiếp theo, theo thứ tự:** (1) prompt v2 cho LLM (chỉ chỉnh trên train), xem lại 4 mẫu có dấu hiệu ngược chiều;
+> - **16/09:** prompt v2 đã thử, **không tốt hơn v1** (42 mẫu train: 0.62 so với 0.60, p = 1.0, macro F1 thấp hơn,
+>   +27% token) → giữ v1. `[llm] prompt_version` chọn phiên bản; `max_tokens` tăng lên 2560.
+>   Xem `docs/reports/2026-09-16-prompt-v2.md`.
+> - **Việc tiếp theo, theo thứ tự:** (1) xem lại 4 mẫu có dấu hiệu ngược chiều sau phân xử, chạy `llm-run --split train` thêm;
 >   (2) `llm-run --split train --limit 40` mỗi ngày; (3) chỉ sau khi nhãn đã chốt mới làm prompt v2 hoặc thêm dữ liệu.
 >   Đừng tinh chỉnh thêm trên tập test trước bước (1).
 

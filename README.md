@@ -159,6 +159,8 @@ Tóm tắt pain point và câu hỏi cho mentor: [`docs/pain-points.html`](docs/
 Báo cáo duyệt nhãn và kiểm định thống kê: [`docs/reports/2026-09-15-label-review-and-statistics.md`](docs/reports/2026-09-15-label-review-and-statistics.md).
 Báo cáo cải thiện bước cắt log: [`docs/reports/2026-09-15-excerpt-improvement.md`](docs/reports/2026-09-15-excerpt-improvement.md).
 Báo cáo ngưỡng TF-IDF và bộ phân loại lai: [`docs/reports/2026-09-15-tfidf-threshold-and-hybrid.md`](docs/reports/2026-09-15-tfidf-threshold-and-hybrid.md).
+Báo cáo hội đồng LLM kiểm tra nhãn: [`docs/reports/2026-09-15-llm-panel.md`](docs/reports/2026-09-15-llm-panel.md).
+Báo cáo prompt v2 (kết quả âm tính): [`docs/reports/2026-09-16-prompt-v2.md`](docs/reports/2026-09-16-prompt-v2.md).
 
 ## Kết quả hiện tại (15/09/2026)
 
@@ -214,10 +216,12 @@ Mẫu `authentication` rất hiếm nên đã được bổ sung bằng tìm ki�
 là lỗi xác thực thật. Các mẫu này mang `retrieval: targeted-auth` và được báo cáo tách riêng, vì được chọn bằng từ khóa
 nên luật từ khóa đạt điểm cao bất thường trên chúng. Kết quả trên **không so được** với lần chấm trước vì tập test đã đổi.
 
-Hướng cải thiện tiếp theo: gán nhãn mù lại một phần tập test để đo mức thiên vị của nhãn nháp, chạy LLM trên train
-để có cross-validation độc lập với tập test, cắt log tốt hơn (so với lần chạy thành công gần nhất), và thêm luật cho
-lint, link checker, docs build, lỗi mạng (chỉ nhìn tập train). Bộ lai "luật cho `authentication`/`compilation` → LLM"
-đã thử và kém hơn LLM một chút (0.698 so với 0.708), nên không dùng.
+Hướng cải thiện tiếp theo: chạy LLM trên nhiều mẫu train hơn để có nền so sánh đủ lớn cho prompt, cắt log tốt hơn
+(so với lần chạy thành công gần nhất), và bổ sung mẫu `infrastructure` (loại yếu nhất, F1 0.43).
+
+Các hướng **đã thử và không dùng** (ghi lại để khỏi làm lại): bộ lai "luật cho `authentication`/`compilation` → LLM"
+kém hơn LLM một chút (0.698 so với 0.708); prompt v2 với quy tắc ranh giới và 4 ví dụ từ train chỉ hơn v1 đúng 1 mẫu
+trên 42 mẫu train (p = 1.0), macro F1 thấp hơn và tốn thêm 27% token.
 
 ## Nguyên tắc để kết quả đáng tin
 

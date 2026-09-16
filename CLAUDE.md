@@ -72,8 +72,9 @@ và không gửi log nội bộ lên LLM bên ngoài khi chưa có mentor đồn
   `llm_predictions` là công sức thật, phải commit.
 - Profile cắt log: `CI_EXCERPT_PROFILE=<tên>` áp `[excerpt.profiles.<tên>]` và đọc/ghi `data/excerpts-<tên>/`;
   `evaluate` gắn tên profile (và `--source`) vào thư mục kết quả. Nhớ xoá biến môi trường sau khi dùng.
-- LLM: câu trả lời lưu theo (model, `PROMPT_VERSION`, mã băm đoạn cắt). Đổi prompt thì tăng `PROMPT_VERSION`;
-  đổi cách cắt log thì câu trả lời cũ không còn khớp và phải chạy lại `llm-run`.
+- LLM: câu trả lời lưu theo (model, phiên bản prompt, mã băm đoạn cắt). Phiên bản đang chấm điểm nằm ở `[llm] prompt_version`
+  (v1 hoặc v2; `llm-run --prompt-version` để thử phiên bản khác). Đổi cách cắt log thì câu trả lời cũ không còn khớp
+  và phải chạy lại `llm-run`. Prompt mới **chỉ được so sánh trên train**; v2 đã thử và không tốt hơn (xem báo cáo).
 
 ## Quy tắc đánh giá
 
