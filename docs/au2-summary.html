@@ -1,0 +1,244 @@
+<title>Tổng kết AU2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  /* Same single white theme as docs/pain-points.html, so the two pages read as one set. */
+  :root {
+    color-scheme: light;
+    --ground: #ffffff;
+    --paper: #f7f9f8;
+    --ink: #17201d;
+    --muted: #5a6763;
+    --rule: #dde3e1;
+    --accent: #1d6b73;
+    --accent-soft: #e1eeee;
+    --fail: #b8322f;
+    --fail-soft: #fbeceb;
+    --bar: #9fbfc1;
+    --code-bg: #f1f4f3;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "Be Vietnam Pro", "Segoe UI", system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.65;
+    padding-inline: 20px;
+    padding-block: 48px 72px;
+  }
+  .page { max-width: 780px; margin-inline: auto; display: grid; gap: 52px; }
+  h1, h2, h3 { text-wrap: balance; line-height: 1.25; margin: 0; }
+  h1 { font-size: 2.05rem; font-weight: 700; letter-spacing: -0.01em; }
+  h2 { font-size: 1.32rem; font-weight: 600; }
+  h3 { font-size: 1rem; font-weight: 600; }
+  p { margin: 0; max-width: 66ch; }
+  code { font-family: "JetBrains Mono", ui-monospace, Consolas, monospace; font-size: 0.86em;
+         background: var(--code-bg); padding: 1px 5px; border-radius: 3px; }
+  .label { font-size: 0.74rem; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); }
+
+  header { display: grid; gap: 16px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--muted); font-size: 0.9rem; }
+  .lede { font-size: 1.06rem; }
+
+  section { display: grid; gap: 20px; }
+  .section-head { display: grid; gap: 6px; border-top: 1px solid var(--rule); padding-top: 20px; }
+  .section-head p { color: var(--muted); }
+
+  /* Headline numbers: only the three figures a reader must remember. */
+  .figures { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .figure { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 14px 16px;
+            display: grid; gap: 4px; align-content: start; }
+  .figure .num { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 1.5rem; font-weight: 500;
+                 font-variant-numeric: tabular-nums; color: var(--accent); line-height: 1.2; }
+  .figure span:last-child { font-size: 0.88rem; color: var(--muted); line-height: 1.45; }
+  @media (max-width: 620px) { .figures { grid-template-columns: 1fr; } }
+
+  .table-wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.92rem; min-width: 560px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { font-size: 0.74rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  td.n { font-family: "JetBrains Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums;
+         text-align: right; white-space: nowrap; }
+  th.n { text-align: right; }
+  td .ci { display: block; font-size: 0.78rem; color: var(--muted); }
+  tr.best td { background: var(--accent-soft); }
+  .note { font-size: 0.9rem; color: var(--muted); }
+
+  ul.points { margin: 0; padding-left: 1.1rem; display: grid; gap: 10px; max-width: 70ch; }
+  ul.points li::marker { color: var(--accent); }
+
+  /* Pipeline: the order of steps is the information, so it is numbered. */
+  ol.steps { margin: 0; padding: 0; list-style: none; counter-reset: s; display: grid; gap: 0; }
+  ol.steps li { counter-increment: s; display: grid; grid-template-columns: 2rem 1fr; gap: 14px;
+                padding-block: 12px; border-bottom: 1px solid var(--rule); }
+  ol.steps li::before { content: counter(s); font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 0.8rem;
+                        color: var(--accent); background: var(--accent-soft); border-radius: 3px; height: fit-content;
+                        text-align: center; padding-block: 2px; }
+  ol.steps strong { display: block; }
+  ol.steps span { color: var(--muted); font-size: 0.93rem; }
+
+  .status { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+            border-radius: 3px; padding: 1px 7px; white-space: nowrap; }
+  .status.done { color: var(--accent); background: var(--accent-soft); }
+  .status.open { color: var(--fail); background: var(--fail-soft); }
+
+  .callout { background: var(--fail-soft); border-radius: 6px; padding: 14px 18px; display: grid; gap: 4px; }
+  .callout strong { color: var(--fail); }
+
+  footer { color: var(--muted); font-size: 0.86rem; border-top: 1px solid var(--rule); padding-top: 18px;
+           display: grid; gap: 6px; }
+  a { color: var(--accent); }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+
+<main class="page">
+  <header>
+    <span class="label">AU2 · CI failure classifier · 16/09/2026</span>
+    <h1>Tổng kết dự án phân loại lỗi CI</h1>
+    <p class="lede">Đọc log của một job CI bị fail và trả lời <em>vì sao nó fail</em>, kèm dòng log làm bằng chứng và runbook tương ứng. Dự án so sánh ba cách làm trên log công khai, và dành phần lớn công sức để kiểm tra xem <strong>đáp án dùng để chấm điểm có đáng tin không</strong>.</p>
+    <div class="meta">
+      <span>Trần Huy Hoàng · thực tập AI</span>
+      <span>Side project AU2, mentor đã đồng ý</span>
+      <span>Chỉ dùng log công khai, không có dữ liệu nội bộ</span>
+    </div>
+  </header>
+
+  <section aria-labelledby="s-result">
+    <div class="section-head">
+      <span class="label">Kết quả chính</span>
+      <h2 id="s-result">Ba con số</h2>
+    </div>
+    <div class="figures">
+      <div class="figure"><span class="label">Bộ phân loại tốt nhất</span><span class="num">0.77</span><span>accuracy trên 291 mẫu test, phương pháp lai LLM + TF-IDF</span></div>
+      <div class="figure"><span class="label">Đáng tin hơn</span><span class="num">0.80</span><span>accuracy của LLM trên 171 mẫu mà hội đồng 3 LLM độc lập xác nhận nhãn</span></div>
+      <div class="figure"><span class="label">Chi phí</span><span class="num">0 USD</span><span>toàn bộ dùng model miễn phí; trung vị 4,5 giây mỗi lần phân loại</span></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Phương pháp</th><th class="n">Accuracy [95% CI]</th><th class="n">Macro F1</th><th class="n">Trả lời unknown</th><th class="n">Cross-validation</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Luật từ khóa (regex)</td><td class="n">0.34<span class="ci">[0.23, 0.46]</span></td><td class="n">0.46</td><td class="n">57%</td><td class="n">0.42 ± 0.10</td></tr>
+          <tr><td>TF-IDF + logistic regression</td><td class="n">0.56<span class="ci">[0.43, 0.69]</span></td><td class="n">0.30</td><td class="n">0%</td><td class="n">0.61 ± 0.06</td></tr>
+          <tr><td>LLM (nemotron-3-super, miễn phí)</td><td class="n">0.74<span class="ci">[0.63, 0.84]</span></td><td class="n">0.74</td><td class="n">8%</td><td class="n">0.71 ± 0.07</td></tr>
+          <tr class="best"><td>Lai: LLM, TF-IDF trả lời khi LLM không chắc</td><td class="n">0.77<span class="ci">[0.66, 0.86]</span></td><td class="n">0.73</td><td class="n">0%</td><td class="n">0.76 ± 0.08</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">291 mẫu test thuộc 43 nhóm (repo, workflow); train/test chia theo nhóm nên không workflow nào nằm cả hai bên. Khoảng tin cậy bằng bootstrap theo nhóm. Kiểm định McNemar: lai &gt; LLM (p = 0.004), LLM &gt; TF-IDF (p ≈ 5e-5), TF-IDF &gt; luật (p ≈ 2e-10).</p>
+  </section>
+
+  <section aria-labelledby="s-how">
+    <div class="section-head">
+      <span class="label">Cách làm</span>
+      <h2 id="s-how">Quy trình</h2>
+    </div>
+    <ol class="steps">
+      <li><div><strong>Thu thập log</strong><span>1.018 log dùng được: 635 từ GitHub Actions (8 repo mã nguồn mở) và 797 từ bộ LogChunks (Travis CI, MSR 2020). 97/280 lần tải hỏng vì GitHub đã xoá log.</span></div></li>
+      <li><div><strong>Cắt log</strong><span>Từ trung vị 106 KB xuống còn khoảng 2,3 KB, giữ cửa sổ quanh dấu lỗi và các dòng đáng chú ý. Đoạn cắt giữ trọn 56% đoạn lỗi mà con người đánh dấu trong LogChunks.</span></div></li>
+      <li><div><strong>Gán nhãn</strong><span>944 mẫu, 6 loại lỗi. Nhãn ban đầu do Claude gán nháp; quy tắc gán nhãn viết thành tài liệu riêng.</span></div></li>
+      <li><div><strong>Ba bộ phân loại</strong><span>Luật regex, TF-IDF + logistic regression, và LLM qua OpenRouter. Cả ba chỉ nhìn thấy đoạn cắt, không thấy đoạn lỗi đã đánh dấu.</span></div></li>
+      <li><div><strong>Đánh giá</strong><span>Precision/recall theo loại, tỷ lệ trả lời unknown, khoảng tin cậy bootstrap theo nhóm, kiểm định McNemar, cross-validation 5 lần. Mỗi báo cáo lưu kèm cấu hình và mã băm của file nhãn.</span></div></li>
+    </ol>
+    <p>MVP dùng được ngay: <code>python -m ci_classifier classify job.log</code> trả về loại lỗi, dòng bằng chứng và runbook; có sẵn dạng JSON cho công cụ khác.</p>
+  </section>
+
+  <section aria-labelledby="s-labels">
+    <div class="section-head">
+      <span class="label">Phần tốn công nhất</span>
+      <h2 id="s-labels">Kiểm tra chất lượng nhãn</h2>
+      <p>Nếu đáp án do một LLM gán mà bộ phân loại cũng là LLM, điểm số sẽ cao ảo. Dự án chỉ có một người, nên dùng ba bước sau.</p>
+    </div>
+    <ul class="points">
+      <li><strong>Tự gán mù lại (thất bại).</strong> 80 mẫu test được gán lại khi đã ẩn nhãn cũ, nhưng làm quá nhanh (trung vị 6 giây/mẫu), kappa chỉ 0,25. Trong 41 mẫu bất đồng, 18 mẫu có dòng log ghi rõ loại của nhãn nháp, chỉ 2 mẫu ngược lại. Lượt này được ghi nhận là không dùng được.</li>
+      <li><strong>Hội đồng 3 LLM (thay người thứ hai).</strong> Ba model thuộc ba họ khác nhau, không dùng Claude (đã gán nháp) và không dùng Nemotron (đang được đánh giá), gán lại toàn bộ 208 mẫu test khác nhau với đúng thông tin người gán thấy. Mỗi model khớp nhãn nháp 84–88% (kappa 0,77–0,83); ba model khớp nhau ở mức Fleiss' kappa 0,89.</li>
+      <li><strong>Người phân xử phần bất đồng.</strong> 37 mẫu bị tranh cãi được người đọc lại, với các nhãn ứng viên hiện theo thứ tự ngẫu nhiên: 13 giữ nhãn nháp, 15 theo đa số hội đồng, 9 chọn nhãn thứ ba.</li>
+    </ul>
+    <div class="callout">
+      <strong>Điều cần nói rõ: điểm ở nhóm mẫu bị tranh cãi chưa độc lập với LLM.</strong>
+      <p>Sau khi phân xử, điểm của bộ phân loại LLM ở 37 mẫu này tăng từ 10/37 lên 19/37, vì ứng viên nhãn do hội đồng LLM đưa ra và người phân xử làm nhanh (trung vị 8 giây/mẫu). Con số nên dùng khi báo cáo là <strong>0,80 trên 171 mẫu được hội đồng xác nhận</strong>. Cần một người thứ hai gán mù khoảng 20 mẫu để biết các LLM có cùng sai hay không.</p>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-negative">
+    <div class="section-head">
+      <span class="label">Kết quả âm tính</span>
+      <h2 id="s-negative">Những hướng đã thử và không dùng</h2>
+      <p>Ghi lại để người sau không làm lại.</p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Hướng</th><th>Kết quả</th></tr></thead>
+        <tbody>
+          <tr><td>Cắt log theo cụm từ khóa lỗi (<code>hints</code>)</td><td>Kém hơn cách cắt cửa sổ ở cùng kích thước (52% so với 56%)</td></tr>
+          <tr><td>So với lần chạy thành công gần nhất (<code>diff</code>)</td><td>Ít hơn 30% số dòng, LLM nhích lên 0.74 so với 0.69, nhưng chưa có ý nghĩa thống kê (p = 0.58)</td></tr>
+          <tr><td>Lai theo hướng "luật trước, LLM sau"</td><td>0.698 so với 0.708 của LLM: kém hơn. Hướng ngược lại (LLM trước) mới có ích</td></tr>
+          <tr><td>Prompt v2: thêm quy tắc ranh giới và 4 ví dụ từ train</td><td>Hơn v1 đúng 1 mẫu trên 42 mẫu train (p = 1.0), macro F1 thấp hơn, tốn thêm 27% token</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-gap">
+    <div class="section-head">
+      <span class="label">So với đề bài</span>
+      <h2 id="s-gap">Đã xong và còn thiếu</h2>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Yêu cầu AU2</th><th>Trạng thái</th></tr></thead>
+        <tbody>
+          <tr><td>Phân loại log job fail đã lưu, chỉ tới runbook</td><td><span class="status done">Xong</span></td></tr>
+          <tr><td>So sánh luật từ khóa, TF-IDF, LLM</td><td><span class="status done">Xong</span></td></tr>
+          <tr><td>Precision/recall theo loại, tỷ lệ abstain</td><td><span class="status done">Xong</span></td></tr>
+          <tr><td>Đo thời gian triage của người</td><td><span class="status open">Chưa</span> Công cụ có sẵn, nhưng người làm dự án đã thuộc đáp án nên cần người khác hoặc log mới</td></tr>
+          <tr><td>Runbook thật</td><td><span class="status open">Chưa</span> Đang dùng runbook mẫu, chờ đường dẫn runbook DMS</td></tr>
+          <tr><td>Adapter tải artifact CI</td><td><span class="status open">Chưa</span> Theo đề bài, làm sau khi bộ phân loại offline chạy tốt</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-limit">
+    <div class="section-head">
+      <span class="label">Giới hạn</span>
+      <h2 id="s-limit">Những gì kết quả này chưa chứng minh</h2>
+    </div>
+    <ul class="points">
+      <li><strong>Tập test nhỏ về số nhóm.</strong> 291 mẫu nhưng chỉ 43 nhóm workflow, nên khoảng tin cậy rộng khoảng ±0,1.</li>
+      <li><strong>Phần lớn dữ liệu là log Travis năm 2019.</strong> Chỉ 62 mẫu test là GitHub Actions; DMS lại dùng Azure DevOps hoặc GitLab, định dạng khác hẳn.</li>
+      <li><strong>Nhãn chưa có người thứ hai kiểm tra.</strong> Mức đồng thuận hiện chỉ đo được giữa các LLM.</li>
+      <li><strong>Luật từ khóa hợp với train hơn test.</strong> Sửa luật làm train tăng từ 0,26 lên 0,45 nhưng test chỉ từ 0,30 lên 0,34.</li>
+      <li><strong>Model miễn phí không ổn định.</strong> Có lúc bị giới hạn lượt gọi, bị chặn, hoặc phản hồi tới 8 phút.</li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="s-next">
+    <div class="section-head">
+      <span class="label">Đề xuất</span>
+      <h2 id="s-next">Việc tiếp theo và câu hỏi cho mentor</h2>
+    </div>
+    <ol class="steps">
+      <li><div><strong>Một người thứ hai gán mù 20 mẫu</strong><span>Đây là cách duy nhất biết được các LLM có cùng sai hay không. Mất khoảng 20 phút.</span></div></li>
+      <li><div><strong>Đo thời gian triage</strong><span>Trên log mới chưa ai xem, có và không có gợi ý của bộ phân loại.</span></div></li>
+      <li><div><strong>Thêm log GitHub Actions</strong><span>Để thu hẹp khoảng tin cậy và kiểm chứng cách cắt log theo lần chạy thành công.</span></div></li>
+      <li><div><strong>Khi có quyền DMS</strong><span>Adapter log Azure DevOps hoặc GitLab, che thông tin nhạy cảm trước khi gửi LLM, runbook thật, tự động chạy khi CI fail.</span></div></li>
+    </ol>
+    <ul class="points">
+      <li>Log nội bộ DMS có được gửi lên LLM bên ngoài không?</li>
+      <li>CI của DMS chạy ở đâu, lấy log fail lịch sử thế nào, lưu bao lâu?</li>
+      <li>Giữ 6 loại lỗi hay tách thêm (lint, docs build, cấu hình workflow)?</li>
+      <li>Tiêu chí "đạt": precision/recall tối thiểu và tỷ lệ unknown tối đa?</li>
+      <li>Runbook thật của DMS nằm ở đâu?</li>
+    </ul>
+  </section>
+
+  <footer>
+    <span>Nguồn số liệu: <code>results/20260916-091707/report.md</code>, <code>results/20260915-220617-panel/panel.json</code>, <code>data/labels.jsonl</code>. Báo cáo chi tiết trong <code>docs/reports/</code>.</span>
+    <span>Pain points và khó khăn khi làm: <a href="https://claude.ai/artifact/LbfNfdN4ebiBvTQts16DGR">trang riêng</a>. Repo: <a href="https://github.com/HuyHoangTran05/au2-ci-failure-classifier">HuyHoangTran05/au2-ci-failure-classifier</a> (private)</span>
+  </footer>
+</main>
