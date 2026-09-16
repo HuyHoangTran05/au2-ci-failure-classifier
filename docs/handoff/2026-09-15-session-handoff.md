@@ -41,7 +41,10 @@ Tài liệu bàn giao để một phiên làm việc mới (người hoặc Clau
 >   Đã đồng bộ 4 mẫu trùng đoạn lỗi. Test hiện tại (`results/20260915-220800/`): LLM 0.72, hybrid 0.75. 20 câu trả lời lỗi
 >   chưa hỏi lại được (nhà cung cấp quá tải). Máy hay thiếu RAM: chạy `panel-run` foreground, `--limit` nhỏ, commit sau mỗi đợt;
 >   sau khi tiến trình bị dừng, kiểm tra còn `python.exe` sót lại không.
-> - **Việc tiếp theo, theo thứ tự:** (1) người dùng phân xử 29 mẫu còn lại (`label --adjudicate --panel`) → `evaluate --cv 5`;
+> - **16/09:** người dùng đã phân xử cả 37 mẫu tranh cãi (10 giữ nháp, 11 theo đa số, 8 nhãn thứ ba; trung vị 8 giây/mẫu - nhanh).
+>   Test (`results/20260916-091707/`): luật 0.34, TF-IDF 0.56, LLM **0.74**, hybrid **0.77**. Điểm LLM ở nhóm tranh cãi
+>   tăng từ 10/37 lên 19/37 → ghi rõ là chưa độc lập với LLM; con số đáng tin hơn: LLM 0.80 trên 171 mẫu confirmed.
+> - **Việc tiếp theo, theo thứ tự:** (1) prompt v2 cho LLM (chỉ chỉnh trên train), xem lại 4 mẫu có dấu hiệu ngược chiều;
 >   (2) `llm-run --split train --limit 40` mỗi ngày; (3) chỉ sau khi nhãn đã chốt mới làm prompt v2 hoặc thêm dữ liệu.
 >   Đừng tinh chỉnh thêm trên tập test trước bước (1).
 
