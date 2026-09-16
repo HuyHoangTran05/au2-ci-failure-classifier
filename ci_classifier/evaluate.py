@@ -96,14 +96,15 @@ def llm_usage(test_ids: list[str], texts: list[str], config: dict) -> dict | Non
     """Tokens, cost and latency of the stored LLM answers used for the test samples."""
     stored = llm.read_predictions()
     model = config["llm"]["model"]
-    records = [stored.get((model, llm.PROMPT_VERSION, llm.excerpt_sha(text))) for text in texts]
+    version = llm.active_version(config)
+    records = [stored.get((model, version, llm.excerpt_sha(text))) for text in texts]
     records = [r for r in records if r]
     if not records:
         return None
     df = pd.DataFrame(records)
     return {
         "model": model,
-        "prompt_version": llm.PROMPT_VERSION,
+        "prompt_version": version,
         "answers": len(df),
         "mean_prompt_tokens": df["prompt_tokens"].mean(),
         "mean_completion_tokens": df["completion_tokens"].mean(),

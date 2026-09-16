@@ -6,8 +6,12 @@ it never calls the API, and it scores the LLM on the test samples that already h
 
 The API key is read from the OPENROUTER_API_KEY environment variable or from a git-ignored `.env` file.
 
+The prompt version comes from [llm] prompt_version in config.toml (v1, or v2 which adds boundary rules and four
+labelled train examples); answers are stored per version, so versions are compared without losing the old answers.
+
 Usage:
     python -m ci_classifier llm-run                      # answer test samples, GitHub Actions first
+    python -m ci_classifier llm-run --prompt-version v2 --split train --source github-actions
     python -m ci_classifier llm-run --limit 20
     python -m ci_classifier llm-run --source github-actions   # only the target log format
     python -m ci_classifier llm-run --model nvidia/nemotron-3-super-120b-a12b:free --split train --limit 3
@@ -30,7 +34,8 @@ from .common import (ROOT, UNKNOWN, append_jsonl, load_config, now_iso, read_exc
                      read_manifest, read_split)
 
 PREDICTIONS = ROOT / "data" / "llm_predictions.jsonl"
-PROMPT_VERSION = "v1"
+PROMPT_VERSION = "v1"          # default when config.toml [llm] has no prompt_version
+
 
 CATEGORY_GUIDE = {
     "compilation": "code does not compile or type-check (compiler/type-checker errors, syntax errors, "
@@ -62,6 +67,44 @@ Rules:
 Reply with only a JSON object, no other text:
 {{"category": "<one category name>", "evidence": "<the single log line that shows the cause, copied verbatim>", "confidence": <number from 0 to 1>}}"""
 
+# v2 adds the boundaries v1 got wrong most often on the train set (a check job's tooling vs a real test failure,
+# an external service vs the code, answering "unknown" when the excerpt does name a failing step) and four examples.
+EXTRA_RULES_V2 = """
+More rules, from cases that are easy to get wrong:
+- A job whose purpose is a check rather than a build or test - lint, formatting, generated files or API specs that must
+  match, docs build, link checkers, PR labels, policy - is "other", even when its output contains "error" or "FAILED".
+- A test that fails or times out on its own logic is test_assertion. The job being cancelled for running too long, or a
+  test failing because the network, the runner or an external service is down, is infrastructure.
+- A service the workflow itself calls (GitHub API, a review bot, a model provider) returning 5xx, a rate limit, a quota
+  error or a blocked connection is infrastructure. A bug in the workflow's own script is "other".
+- Answer "unknown" only when the excerpt shows no failure at all. If it names a failing step or command, choose the
+  category that step's output supports, even when earlier lines were cut."""
+
+# Short excerpts taken from TRAIN samples (never from test), with their labels:
+# grafana/grafana 33198516961 (other), semantic-kernel 34092303724 (dependency),
+# semantic-kernel 34109665886 (test_assertion), home-assistant/core 30654090602 (infrastructure).
+FEW_SHOT_V2 = [
+    ("## job: Verify committed API specs match\n-- context --\nChanges detected in API specs. Please review the "
+     "changes.\nYou can regenerate them locally with: make swagger-clean && make openapi3-gen\n"
+     "##[error]Process completed with exit code 1.",
+     "other", "Changes detected in API specs. Please review the changes.", 0.9),
+    ("## job: dotnet-build-and-test (integration)\n-- key lines --\nsamples/GettingStartedWithAgents.csproj : error "
+     "NU1605: Warning As Error: Detected package downgrade: Azure.Identity from 1.13.2 to 1.12.0\n-- context --\n"
+     "##[error]Integration Tests Failed!",
+     "dependency", "error NU1605: Warning As Error: Detected package downgrade: Azure.Identity from 1.13.2 to 1.12.0",
+     0.85),
+    ("## job: Python Unit Tests\n-- context --\n=========================== short test summary info "
+     "============================\nFAILED tests/unit/agents/orchestration/test_sequential.py::"
+     "test_invoke_with_agent_raising_exception - TimeoutError\n1 failed, 4106 passed, 1 skipped in 85.26s\n"
+     "##[error]Process completed with exit code 1.",
+     "test_assertion", "FAILED tests/unit/agents/orchestration/test_sequential.py::"
+     "test_invoke_with_agent_raising_exception - TimeoutError", 0.9),
+    ("## job: copilot-pull-request-reviewer\n-- context --\n[cause]: [Error: You have exceeded your monthly quota]\n"
+     "Warning: I tried to connect to the following addresses, but was blocked by firewall rules:\n"
+     "##[error]Process completed with exit code 1.",
+     "infrastructure", "[cause]: [Error: You have exceeded your monthly quota]", 0.8),
+]
+
 
 class LLMError(RuntimeError):
     pass
@@ -88,15 +131,32 @@ def excerpt_sha(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
 
 
-def build_messages(excerpt: str, categories: list[str], max_chars: int) -> list[dict]:
+def active_version(config: dict) -> str:
+    """Prompt version the project currently scores with ([llm] prompt_version in config.toml)."""
+    return config["llm"].get("prompt_version", PROMPT_VERSION)
+
+
+def user_message(excerpt: str, max_chars: int) -> dict:
     if len(excerpt) > max_chars:
         # Keep the end: the failure markers sit at the bottom of each job's context.
         excerpt = "[... earlier lines omitted ...]\n" + excerpt[-max_chars:]
+    return {"role": "user", "content": f"CI log excerpt:\n```\n{excerpt}\n```"}
+
+
+def build_messages(excerpt: str, categories: list[str], max_chars: int, version: str = PROMPT_VERSION) -> list[dict]:
+    """Messages for one sample. v2 = v1 plus extra boundary rules and four labelled train examples."""
+    if version not in ("v1", "v2"):
+        raise ValueError(f"unknown prompt version {version!r}; use v1 or v2")
     guide = "\n".join(f"- {name}: {CATEGORY_GUIDE[name]}" for name in categories)
-    return [
-        {"role": "system", "content": SYSTEM_PROMPT.format(categories=guide)},
-        {"role": "user", "content": f"CI log excerpt:\n```\n{excerpt}\n```"},
-    ]
+    system = SYSTEM_PROMPT.format(categories=guide) + (EXTRA_RULES_V2 if version == "v2" else "")
+    messages = [{"role": "system", "content": system}]
+    if version == "v2":
+        for sample, category, evidence, confidence in FEW_SHOT_V2:
+            messages.append(user_message(sample, max_chars))
+            messages.append({"role": "assistant", "content": json.dumps(
+                {"category": category, "evidence": evidence, "confidence": confidence})})
+    messages.append(user_message(excerpt, max_chars))
+    return messages
 
 
 def parse_response(content: str, categories: list[str]) -> tuple[str, str, float | None]:
@@ -193,15 +253,17 @@ def read_predictions() -> dict[tuple[str, str, str], dict]:
     return {(r["model"], r["prompt_version"], r["excerpt_sha"]): r for r in read_jsonl(PREDICTIONS)}
 
 
-def classify_text(text: str, config: dict, client: OpenRouterClient, sample_id: str = "") -> dict:
+def classify_text(text: str, config: dict, client: OpenRouterClient, sample_id: str = "",
+                  version: str | None = None) -> dict:
     """Ask the model and store the answer. Returns the stored record."""
     cfg = config["llm"]
-    reply = client.complete(build_messages(text, config["categories"], cfg["max_excerpt_chars"]))
+    version = version or active_version(config)
+    reply = client.complete(build_messages(text, config["categories"], cfg["max_excerpt_chars"], version))
     category, evidence, confidence = parse_response(reply["content"], config["categories"])
     usage = reply["usage"]
     record = {
         "sample_id": sample_id, "model": client.model, "served_by": reply["model"],
-        "prompt_version": PROMPT_VERSION, "excerpt_sha": excerpt_sha(text),
+        "prompt_version": version, "excerpt_sha": excerpt_sha(text),
         "category": category, "evidence": evidence, "confidence": confidence,
         "prompt_tokens": usage.get("prompt_tokens"), "completion_tokens": usage.get("completion_tokens"),
         "cost_usd": usage.get("cost", 0), "latency_s": reply["latency_s"],
@@ -220,14 +282,16 @@ def to_prediction(record: dict, abstain_below: float) -> tuple[str, str]:
     return category, f"conf={shown} | {record.get('evidence', '')}"
 
 
-def cached_predictor(config: dict, model: str | None = None) -> Callable[[str], tuple[str, str] | None]:
+def cached_predictor(config: dict, model: str | None = None,
+                     version: str | None = None) -> Callable[[str], tuple[str, str] | None]:
     """Predictor for evaluate: answers from stored predictions only, None when a sample has no answer yet."""
     cfg = config["llm"]
     model = model or cfg["model"]
+    version = version or active_version(config)
     stored = read_predictions()
 
     def predict(text: str) -> tuple[str, str] | None:
-        record = stored.get((model, PROMPT_VERSION, excerpt_sha(text)))
+        record = stored.get((model, version, excerpt_sha(text)))
         return None if record is None else to_prediction(record, cfg["abstain_below"])
 
     return predict
@@ -242,6 +306,8 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--limit", type=int, default=None, help="maximum number of API calls this run")
     parser.add_argument("--model", default=cfg["model"])
     parser.add_argument("--source", choices=["github-actions", "logchunks"], help="only samples from this source")
+    parser.add_argument("--prompt-version", choices=["v1", "v2"], default=active_version(config),
+                        help="prompt to use; answers are stored per version so versions can be compared")
     parser.add_argument("--reparse", action="store_true",
                         help="re-read category/evidence/confidence from the stored raw replies (no API calls)")
     args = parser.parse_args(argv)
@@ -267,16 +333,17 @@ def main(argv: list[str] | None = None) -> None:
                     and (args.source is None or manifest[sid].get("source", "github-actions") == args.source)),
                    key=lambda sid: (manifest[sid].get("source", "github-actions") != "github-actions", sid))
     stored = read_predictions()
-    missing = [sid for sid in queue if (args.model, PROMPT_VERSION, excerpt_sha(read_excerpt(sid))) not in stored]
+    version = args.prompt_version
+    missing = [sid for sid in queue if (args.model, version, excerpt_sha(read_excerpt(sid))) not in stored]
     todo = missing if args.limit is None else missing[:args.limit]
-    print(f"{len(queue) - len(missing)}/{len(queue)} {args.split} samples already answered by {args.model}; "
-          f"calling the API for {len(todo)}.")
+    print(f"{len(queue) - len(missing)}/{len(queue)} {args.split} samples already answered by {args.model} "
+          f"with prompt {version}; calling the API for {len(todo)}.")
 
     client = OpenRouterClient(cfg, load_api_key(), args.model)
     done = 0
     for index, sid in enumerate(todo, start=1):
         try:
-            record = classify_text(read_excerpt(sid), config, client, sid)
+            record = classify_text(read_excerpt(sid), config, client, sid, version)
         except DailyLimitReached as exc:
             print(f"Daily free-model limit reached after {done} calls; run again tomorrow. ({exc})")
             break
