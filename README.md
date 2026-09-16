@@ -118,6 +118,13 @@ python -m ci_classifier classify job.log --json   # kết quả dạng JSON cho 
 python -m ci_classifier classify job.log --method hybrid   # LLM, TF-IDF trả lời thay khi LLM không chắc
 ```
 
+Bản demo trên trình duyệt (dán log, chọn phương pháp, xem kết quả cạnh nhau) — dùng khi trình bày:
+
+```powershell
+python -m ci_classifier demo              # mở http://127.0.0.1:8000
+python -m ci_classifier demo --port 8123 --no-browser
+```
+
 ## Dữ liệu
 
 | Nguồn | Số mẫu | Ghi chú |
@@ -156,6 +163,7 @@ Báo cáo `evaluate` cảnh báo nếu tập test còn nhãn nháp. Nhãn nháp 
 với phương pháp LLM, kết quả có thể bị thiên vị: hãy duyệt hết nhãn của tập test trước khi báo cáo.
 
 Tóm tắt pain point và câu hỏi cho mentor: [`docs/pain-points.html`](docs/pain-points.html).
+Slide trình bày (Canva, chỉ xem): https://canva.link/hhdbap2eg798si0
 Báo cáo duyệt nhãn và kiểm định thống kê: [`docs/reports/2026-09-15-label-review-and-statistics.md`](docs/reports/2026-09-15-label-review-and-statistics.md).
 Báo cáo cải thiện bước cắt log: [`docs/reports/2026-09-15-excerpt-improvement.md`](docs/reports/2026-09-15-excerpt-improvement.md).
 Báo cáo ngưỡng TF-IDF và bộ phân loại lai: [`docs/reports/2026-09-15-tfidf-threshold-and-hybrid.md`](docs/reports/2026-09-15-tfidf-threshold-and-hybrid.md).

@@ -21,6 +21,7 @@ COMMANDS = {
     "llm-run": "ask the LLM (OpenRouter) about test samples and store the answers",
     "evaluate": "compare classifiers on the test set and write a report",
     "classify": "classify one saved failed-job log and link its runbook",
+    "demo": "serve a browser demo: paste a log, pick a method, see the answer",
     "triage": "time human triage with and without the classifier's hint",
 }
 # Commands whose module name differs from the command name.
