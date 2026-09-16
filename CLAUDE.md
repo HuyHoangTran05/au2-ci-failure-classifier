@@ -2,7 +2,7 @@
 
 Hướng dẫn cho Claude Code (và người mới) khi làm việc trong repo này.
 
-**Bắt đầu phiên mới:** đọc bản bàn giao mới nhất trong `docs/handoff/` (trạng thái, số liệu, việc tiếp theo).
+**Bắt đầu phiên mới:** đọc `README.md` (kết quả hiện tại) và báo cáo mới nhất trong `docs/reports/`.
 
 ## Dự án
 
